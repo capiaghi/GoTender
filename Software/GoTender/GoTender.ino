@@ -117,9 +117,43 @@ static uint8_t    nextState = 0;
 static uint16_t   oldValue = 0;
 
 
+
+// ISR **********************************************************
+// ----------------------------------------------------------------------------
+/// \brief     Timer interrupt 
+/// \detail    For measurement: Every 10 ms an interrupt
+/// \warning   
+/// \return   
+/// \todo      Check, if 10 ms is correct
+///
+uint8_t runMeasurement;
+ISR(TIMER3_COMPA_vect)
+{
+   runMeasurement = 1;
+}
+
+
+
+
 // Initialization **********************************************************
 // The setup function runs once when you press reset or power the board
 void setup() {
+   
+   //@Anne: Bitte kontrolliere folgenden Code
+   // Er sollte alle 10 ms ein Timer-Interrupt auslösen (für deine Regelung)
+   // und setzt ein Flag runMeasurement auf 1
+   
+   // Timer for Controller
+   // Init timer 3, interrupts every second
+   TCCR3A = 0;
+   TCCR3B = 0xc;     // CTC mode, prescaler = 256+ (clk/256 (From prescaler)
+
+   OCR3A = 625;      // 16 MHz / 256 = 62500 gives exactly one second (2 Output Compare Register)
+                     // Speedup: 10 ms = 625
+
+   TIMSK3 |= 0x02;   // Enable output compare match ints
+   sei();            // Enable interrupts
+   
    // Initialize LEDs
    pinMode(GREEN_LED_PIN, OUTPUT);
    pinMode(RED_LED_PIN, OUTPUT);
