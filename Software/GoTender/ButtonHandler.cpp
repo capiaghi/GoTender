@@ -32,20 +32,24 @@
 static uint8_t 	buttonStateUp = HIGH;
 static uint8_t 	buttonStateEnter = HIGH;
 static uint8_t 	buttonStateDown = HIGH;
+static uint8_t  buttonStateSmoker = LOW;
 // Last button state
 static uint8_t 	lastbuttonStateUp = HIGH;
 static uint8_t 	lastbuttonStateEnter = HIGH;
 static uint8_t 	lastbuttonStateDown = HIGH;
+static uint8_t  lastbuttonStateSmoker = LOW;
 // Button pressed flag
 static uint8_t 	buttonUpFlag = LOW;
 static uint8_t 	buttonEnterFlag = LOW;
 static uint8_t 	buttonDownFlag = LOW;
+static uint8_t  buttonSmokerFlag = LOW;
  
 // the following variables are long's because the time, measured in miliseconds,
 // will quickly become a bigger number than can be stored in an int.
 static long 		lastDebounceTimeUp = 0;  // the last time the output pin was toggled
 static long 		lastDebounceTimeEnter = 0; 
 static long 		lastDebounceTimeDown = 0; 
+static long     lastDebounceTimeSmoker = 0;
 
 // ----------------------------------------------------------------------------
 /// \brief     Initialize buttosn
@@ -56,14 +60,11 @@ static long 		lastDebounceTimeDown = 0;
 ///
 void initButton()
 {
-   // Initialize digital pins as an input
-   //pinMode(BUTTON_UP_PIN, INPUT);
-  // pinMode(BUTTON_ENTER_PIN, INPUT);
-   //pinMode(BUTTON_DOWN_PIN, INPUT);
-
    pinMode(BUTTON_UP_PIN, INPUT_PULLUP);
    pinMode(BUTTON_ENTER_PIN, INPUT_PULLUP);
    pinMode(BUTTON_DOWN_PIN, INPUT_PULLUP);
+   
+   pinMode(BUTTON_SMOKER, INPUT);
 }
 
 // ----------------------------------------------------------------------------
@@ -129,11 +130,35 @@ uint8_t getButtonStateDown()
 	}
 }
 
+
+// ----------------------------------------------------------------------------
+/// \brief     Get state of Button Smoker
+/// \detail    Gets the state of the button and resets the flag
+/// \warning   
+/// \return    state: 1 pressed, 0 not pressed
+/// \todo      
+///
+uint8_t getButtonStateSmoker()
+{
+  if(buttonSmokerFlag == HIGH)
+  {
+    buttonSmokerFlag = LOW;
+    return 1;
+  }
+  else
+  {
+    buttonSmokerFlag = LOW;
+    return 0;
+  }
+}
+
+
 void clearButtonAllFlags()
 {
-  buttonUpFlag    = LOW;
-  buttonEnterFlag = LOW;
-  buttonDownFlag  = LOW;
+  buttonUpFlag      = LOW;
+  buttonEnterFlag   = LOW;
+  buttonDownFlag    = LOW;
+  buttonSmokerFlag  = LOW;
 }
 
 // ----------------------------------------------------------------------------
@@ -149,6 +174,7 @@ void updateButtonHandler()
   int readingUp      = digitalRead(BUTTON_UP_PIN);
   int readingEnter   = digitalRead(BUTTON_ENTER_PIN);
   int readingDown    = digitalRead(BUTTON_DOWN_PIN);
+  int readingSmoker  = digitalRead(BUTTON_SMOKER);
 
   // If the switch changed, due to noise or pressing:
   if (readingUp != lastbuttonStateUp) {
@@ -165,6 +191,12 @@ void updateButtonHandler()
   if (readingDown != lastbuttonStateDown) {
     // reset the debouncing timer
     lastDebounceTimeDown = millis();
+  }
+
+    // If the switch changed, due to noise or pressing:
+  if (readingSmoker != lastbuttonStateSmoker) {
+    // reset the debouncing timer
+    lastDebounceTimeSmoker = millis();
   }
   
 
@@ -210,7 +242,23 @@ void updateButtonHandler()
     }
   }
 
-  lastbuttonStateUp 	   = readingUp;
-  lastbuttonStateEnter 	= readingEnter;
-  lastbuttonStateDown 	= readingDown;
+
+    if ((millis() - lastDebounceTimeSmoker) > DEBOUNCE_DELAY) {
+    // whatever the reading is at, it's been there for longer
+    // than the debounce delay, so take it as the actual current state:
+
+    // if the button state has changed:
+    if (readingSmoker != buttonStateSmoker) {
+      buttonStateSmoker = readingSmoker;
+
+      if (buttonStateSmoker == HIGH) {
+        buttonSmokerFlag = HIGH;
+      }
+    }
+  }
+
+  lastbuttonStateUp 	    = readingUp;
+  lastbuttonStateEnter 	  = readingEnter;
+  lastbuttonStateDown 	  = readingDown;
+  lastbuttonStateSmoker   = readingSmoker;
 }

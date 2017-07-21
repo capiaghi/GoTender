@@ -39,8 +39,6 @@
 #include "Potentiometers.h"         // Read out Potentiometers Meat and Oven
 #include "Controller.h"             // Controls the run state
 
-
-static uint8_t test[4096];
 // Private types **************************************************************
 /// \brief Used States
 /// \details States for the main state machine TBD
@@ -130,6 +128,9 @@ void setup() {
    // Initialize Buttons
    initButton();
 
+   // Initialize Relais
+   //initRelais();
+
 
    // Initialize state machine
    stm_entryFlag = TRUE;
@@ -151,6 +152,11 @@ void setup() {
 // Loop **********************************************************
 // The loop function runs over and over again forever
 void loop() {
+
+
+// if(getButtonStateSmoker())
+//{
+//}
 	
 
    updateButtonHandler();
@@ -851,6 +857,18 @@ void loop() {
          stm_actState = STM_STATE_ERROR;
       break;
       }
+
+
+
+
+    // Safety
+
+    // if( ...)
+    // Alles aus
+
+
+
+
 
       
       displayTime(); // TBD: Not every cycle

@@ -51,5 +51,6 @@ void     clearButtonAllFlags();
 uint8_t  getButtonStateUp();
 uint8_t 	getButtonStateEnter();
 uint8_t 	getButtonStateDown();
+uint8_t getButtonStateSmoker();
 
 #endif
