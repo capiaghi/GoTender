@@ -90,7 +90,7 @@ typedef enum stm_substate_time_e
 
 
 // Private constants **********************************************************
-const char       SOFTWARE_VERSION[10]  = "V0.2";
+const char       SOFTWARE_VERSION[10]  = "V0.3";
 //const uint16_t   UART_SPEED            = 115200;
 #define				UART_SPEED				( 115200 )
 
@@ -109,7 +109,6 @@ static stm_bool_t             stm_sub_entryFlag;
 
 static stm_substate_t         stm_SubState;
 static stm_substate_time_t    stm_time_SubState;
-
 
 
 // Private function prototypes ***********************************************
@@ -159,16 +158,36 @@ float pwmDuty2 = 256;   // 25% der Periode ist ein
 float newPwmDuty             =    0; // adc variable für
 
 
-int LowerLevel = 0;
-int HigherLevel = 0;
-unsigned long previousMillis = 0;
-unsigned long currentMillis = 0;
-int intervalHigh = 5000; //TODO: modify so it is 30 second intervals - probably needs to be in ms
-int intervalLow = 20000; //TODO: modify so it is 120 (2min) intervals
+// All Values for TIME setting, 3 in total: Heater /Smoker /timer (input) **********************************
+
+int LowerLevelHeater = 0;
+int HigherLevelHeater = 0;
+
+int LowerLevelSomker = 0;
+int HigherLevelSomker = 0;
+
+
+unsigned long previousMillisHeater = 0;
+unsigned long currentMillisHeater = 0;
+
+unsigned long previousMillisSmoker = 0;
+unsigned long currentMillisSmoker = 0;
+
+unsigned long previousMillisTimer = 0;
+unsigned long currentMillisTimer = 0;
+
+
+double intervalHighHeater = 10000; // modify so it is 5 second intervals - probably needs to be in ms -- 10sec
+double intervalLowHeater = 60000; // modify so it is 20 seconds (2min) intervals$ ---1 min
+
+double intervalHighSmoker = 2000; // modify so it is 5 second intervals - probably needs to be in ms --30sec
+double intervalLowSmoker = 120000; // modify so it is 20 seconds (2min) intervals$ --- 5min
+
+int smokerCounter = 0; //used to determine how many pulses the smoker does
+
 boolean ovenState = false; //TODO: unless you can read ovenState you'll need to keep track everywhere it is changed
-
-
-
+boolean smokerState = false; //TODO: unless you can read ovenState you'll need to keep track everywhere it is changed
+boolean runSmoker = 0; // inside RUN state check variable, if smoker was set in SETTING state
 
 // Initialization **********************************************************
 // The setup function runs once when you press reset or power the board
@@ -238,7 +257,7 @@ void setup() {
 // PWM  *****************************************************************
 
 // initialize the timer1 interrupt for the frequency variable output
- Timer3.initialize(33333);                   // initialize timer1, and set a 33.333ms period -> 30Hz
+// Timer3.initialize(33333);                   // initialize timer1, and set a 33.333ms period -> 30Hz
  
 //   Timer3.pwm(RELAIS_HEATER, pwmDuty);     // setup pwm on pin 9, 50% duty cycle
 
@@ -696,14 +715,14 @@ void loop() {
 
                if(getButtonStateEnter())
                {
-                  setSmoker(); // TBD test
+                  setSmoker(); 
                   stm_sub_entryFlag = TRUE;
 
                   stm_SubState = STM_SUBSTATE_DONE;
                }
                if(getButtonStateDown())
                {
-                  resetSmoker(); // TBD test
+                  resetSmoker(); 
                   stm_sub_entryFlag = TRUE;
                   stm_SubState = STM_SUBSTATE_DONE;
                }
@@ -1008,59 +1027,185 @@ void loop() {
 
 //analogRead(RELAIS_HEATER);
 
-LowerLevel = getTemperatureOvenSetPoint()-2;
-HigherLevel = getTemperatureOvenSetPoint()+2;
+LowerLevelHeater = getTemperatureOvenSetPoint()-3;
+HigherLevelHeater = getTemperatureOvenSetPoint()+3;
 
-  if((getTemperatureOven() < getTemperatureOvenSetPoint()-3))
-  { 
-     digitalWrite(RELAIS_HEATER, HIGH);
-      ovenState = true;
+ //if (timerSet && timerOver) {
+   //  stop the function completely
+  // }
+if (runSmoker == 0) {
+  
+   if ((getTemperatureOven() >= (getTemperatureOvenSetPoint()+5)) || (getTemperatureMeat() >= getTemperatureMeatSetPoint()))
+          {
+
                           #ifdef DEBUG
-                          Serial.println(F("LED BLink heat up"));
+                          Serial.println(F("Pulsed signal and heater stop"));
                           #endif
-                          
-                          digitalWrite(RED_LED_PIN, LOW);
-                          digitalWrite(YELLOW_LED_PIN, LOW);
-                          
-                          digitalWrite(GREEN_LED_PIN, HIGH);
-                          delay (1000);
-                          
-                          digitalWrite(GREEN_LED_PIN, LOW);
-                          delay (1000);  
-  }
-      else if(LowerLevel < getTemperatureOven() <= HigherLevel)     
-         {              
-       //   Timer3.pwm(RELAIS_HEATER, pwmDuty, 8000000);    // 50% dutycycle pwm an pin heater, 8s Periode, pwmDuty2 = 25% 
+  
+           // Timer3.disablePwm(RELAIS_HEATER);
+            digitalWrite(RELAIS_HEATER, LOW);
+            displayCommandSmall1("Heater off");
+            digitalWrite(RED_LED_PIN, HIGH);
+            digitalWrite(GREEN_LED_PIN, LOW);
+            ovenState = false;
+          }
+      else if(LowerLevelHeater <= getTemperatureOven())     
+         {             
 
                           #ifdef DEBUG
                           Serial.println(F("Pulsed signal"));
                           #endif
 
 
-                currentMillis = millis();
+                currentMillisHeater = millis();
 
-                if ((currentMillis - previousMillis) >= intervalHigh) {     
+                if ((currentMillisHeater - previousMillisHeater) >= intervalHighHeater) {     
                    if (ovenState) {
                           #ifdef DEBUG
                           Serial.println(F("heater stop"));
                           #endif
                           
                          digitalWrite(RELAIS_HEATER, LOW);
-                         displayCommandSmall1("Low");
+                         displayCommandSmall1("Heater Low 1m");
                          digitalWrite(RED_LED_PIN, LOW);
-                         previousMillis = currentMillis;
+                         previousMillisHeater = currentMillisHeater;
                          ovenState = false;
                   } 
-                  else if ((currentMillis - previousMillis) >= intervalLow) {
+                  else if ((currentMillisHeater - previousMillisHeater) >= intervalLowHeater) {
 
                           #ifdef DEBUG
                           Serial.println(F("heater on"));
                           #endif
                           
                           digitalWrite(RELAIS_HEATER, HIGH);
-                          displayCommandSmall1("High");
+                          displayCommandSmall1("Heater High 30s");
                           digitalWrite(RED_LED_PIN, HIGH);
-                          previousMillis = currentMillis;
+                          previousMillisHeater = currentMillisHeater;
+                          ovenState = true; 
+                  }
+              } 
+
+            
+           
+        } 
+          else if((getTemperatureOven() <= getTemperatureOvenSetPoint()-4))
+            { 
+                          digitalWrite(RELAIS_HEATER, HIGH);
+                           ovenState = true;
+                           
+                          #ifdef DEBUG
+                          Serial.println(F("LED BLink heat up"));
+                          #endif
+                          displayCommandSmall1("Heating up");
+                          
+                          digitalWrite(GREEN_LED_PIN, HIGH);
+                          delay (1000);
+                          
+                          digitalWrite(GREEN_LED_PIN, LOW);
+                          delay (1000);  
+            } 
+
+
+}
+
+
+
+if (getSmokerState() == TRUE)
+{
+ //displayCommandSmall2("Smoker aktive");
+ currentMillisSmoker= millis();
+  
+        if (getTemperatureOven() >= getTemperatureOvenSetPoint()-2) {
+            if (runSmoker == 0) {
+              displayCommandSmall2("Smoker run");
+              previousMillisSmoker = currentMillisSmoker;
+              smokerCounter = 0;
+              smokerState = true;
+              digitalWrite(RELAIS_HEATER, LOW);
+              digitalWrite(RELAIS_SMOKER, HIGH);
+              ovenState = false;
+            }
+            runSmoker = 1;
+
+        }
+        if((runSmoker == 1) && (smokerCounter < 3)) {
+                if (((currentMillisSmoker - previousMillisSmoker) >= intervalHighSmoker)) {     
+                         if(smokerState == true) {
+                          #ifdef DEBUG
+                          Serial.println(F("Smoker stop"));
+                          #endif
+                          
+                         digitalWrite(RELAIS_SMOKER, LOW);
+                         displayCommandSmall2("Smoker Low 2m");
+                         digitalWrite(RED_LED_PIN, HIGH);
+                         previousMillisSmoker = currentMillisSmoker;
+                         smokerState = false;
+                         smokerCounter = smokerCounter + 1;
+                         }
+                       if (((currentMillisSmoker - previousMillisSmoker) >= intervalLowSmoker)) {
+                          if (smokerState == false) {
+                            #ifdef DEBUG
+                            Serial.println(F("Smoker on"));
+                            #endif
+
+                            digitalWrite(RELAIS_HEATER, LOW);
+                            digitalWrite(RELAIS_SMOKER, HIGH);
+                            ovenState = false;
+                            displayCommandSmall2("Somker High 30s");
+                            //digitalWrite(RED_LED_PIN, HIGH);
+                            previousMillisSmoker = currentMillisSmoker;
+                            smokerState = true; 
+                          }
+                  }
+                }
+                  if (smokerState == FALSE) {
+                        if ((getTemperatureOven() >= getTemperatureOvenSetPoint()+5) || (getTemperatureMeat() >= getTemperatureMeatSetPoint()))
+                        {
+
+                          #ifdef DEBUG
+                          Serial.println(F("Pulsed signal and heater stop"));
+                          #endif
+  
+     
+                          digitalWrite(RELAIS_HEATER, LOW);
+                     
+            
+                         digitalWrite(RED_LED_PIN, HIGH);
+                         digitalWrite(GREEN_LED_PIN, LOW);
+                          ovenState = false;
+                         }
+                     
+      else if(LowerLevelHeater <= getTemperatureOven())     
+         {              
+                          #ifdef DEBUG
+                          Serial.println(F("Pulsed signal"));
+                          #endif
+
+
+                currentMillisHeater = millis();
+
+                if ((currentMillisHeater - previousMillisHeater) >= intervalHighHeater) {     
+                   if (ovenState) {
+                          #ifdef DEBUG
+                          Serial.println(F("heater stop"));
+                          #endif
+                          
+                         digitalWrite(RELAIS_HEATER, LOW);
+                         displayCommandSmall1("Heater Low 1min");
+                         digitalWrite(RED_LED_PIN, LOW);
+                         previousMillisHeater = currentMillisHeater;
+                         ovenState = false;
+                  } 
+                  else if ((currentMillisHeater - previousMillisHeater) >= intervalLowHeater) {
+
+                          #ifdef DEBUG
+                          Serial.println(F("heater on"));
+                          #endif
+                          
+                          digitalWrite(RELAIS_HEATER, HIGH);
+                          displayCommandSmall1("Heater High 30s");
+                         // digitalWrite(RED_LED_PIN, HIGH);
+                          previousMillisHeater = currentMillisHeater;
                           ovenState = true; 
                   }
               } 
@@ -1070,35 +1215,32 @@ HigherLevel = getTemperatureOvenSetPoint()+2;
            digitalWrite(RED_LED_PIN, LOW);
            
         }  
-
-      else if ((getTemperatureOven() >= getTemperatureOvenSetPoint()+3) || (getTemperatureMeat() >= getTemperatureMeatSetPoint()))
-          {
-
+   else if((getTemperatureOven() <= getTemperatureOvenSetPoint()-4))
+   { 
+     digitalWrite(RELAIS_HEATER, HIGH);
+      ovenState = true;
                           #ifdef DEBUG
-                          Serial.println(F("Pulsed signal and heater stop"));
+                          Serial.println(F(" heating up"));
                           #endif
-  
-           // Timer3.disablePwm(RELAIS_HEATER);
-            digitalWrite(RELAIS_HEATER, LOW);
-            digitalWrite(RED_LED_PIN, HIGH);
-            digitalWrite(GREEN_LED_PIN, LOW);
-            ovenState = false;
-          }
+                          displayCommandSmall1("Heating up");
+           
+                          
+                          digitalWrite(GREEN_LED_PIN, HIGH);
+                          delay (1000);
+                          
+                          digitalWrite(GREEN_LED_PIN, LOW);
+                          delay (1000);  
+  }
+                  
 
-                        //  #ifdef DEBUG
-                       //   Serial.println(F("heater stop"));
-                         // #endif
-                         
-//                    Timer3.disablePwm(RELAIS_HEATER);
-//                    digitalWrite(RELAIS_HEATER, LOW);
-//                    digitalWrite(RED_LED_PIN, HIGH);
-//                    digitalWrite(GREEN_LED_PIN, LOW);
-                     
-
-
-
-
-
+              } 
+        }
+        if (smokerCounter == 3) {
+          runSmoker = 0;
+          resetSmoker();
+          displayCommandSmall2("Smoker stop");
+        }
+}
 
 
 
