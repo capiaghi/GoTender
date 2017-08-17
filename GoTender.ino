@@ -9,9 +9,9 @@
 ///
 /// \author    Christoph Capiaghi, Anne Liebold
 ///
-/// \version   0.2
+/// \version   0.5
 ///
-/// \date      20170808
+/// \date      20170817
 /// 
 /// \copyright Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -70,7 +70,10 @@ typedef enum stm_substate_e
    STM_SUBSTATE_SET_TIME,                 /// RTC Time and Date
    STM_SUBSTATE_SET_TEMPERATURE_OVEN,     /// Set temperature
    STM_SUBSTATE_SET_TEMPERATURE_MEAT,
+  //STM_SUBSTATE_SET_HOUR_TIMER,          /// RTC Hour TIMER
+  //STM_SUBSTATE_SET_MIN_TIMER,   
    STM_SUBSTATE_SET_SMOKER,               /// Enable or disable smoker
+   STM_SUBSTATE_SET_TIMER,                 /// thet clock
    STM_SUBSTATE_DONE,                     /// Next main state
 } stm_substate_t;
 
@@ -80,6 +83,8 @@ typedef enum stm_substate_time_e
 {
   STM_SUBSTATE_SET_HOUR,          /// RTC Hour
   STM_SUBSTATE_SET_MIN,           /// RTC Min
+  STM_SUBSTATE_SET_HOUR_TIMER,          /// RTC Hour TIMER
+  STM_SUBSTATE_SET_MIN_TIMER,           /// RTC Min TIMER
   STM_SUBSTATE_SET_DAY,           /// RTC Day
   STM_SUBSTATE_SET_MONTH,         /// RTC Month
   STM_SUBSTATE_SET_YEAR,          /// RTC YEAR
@@ -177,17 +182,26 @@ unsigned long previousMillisTimer = 0;
 unsigned long currentMillisTimer = 0;
 
 
-double intervalHighHeater = 10000; // modify so it is 5 second intervals - probably needs to be in ms -- 10sec
-double intervalLowHeater = 60000; // modify so it is 20 seconds (2min) intervals$ ---1 min
+double intervalHighHeater = 20000; // modify so it is 5 second intervals - probably needs to be in ms -- 10sec
+double intervalLowHeater = 120000; // modify so it is 20 seconds (2min) intervals$ ---1 min
 
-double intervalHighSmoker = 2000; // modify so it is 5 second intervals - probably needs to be in ms --30sec
-double intervalLowSmoker = 120000; // modify so it is 20 seconds (2min) intervals$ --- 5min
+double intervalHighSmoker = 20000; // modify so it is 5 second intervals - probably needs to be in ms --30sec
+double intervalLowSmoker = 300000; // modify so it is 20 seconds (2min) intervals$ --- 5min
 
 int smokerCounter = 0; //used to determine how many pulses the smoker does
 
 boolean ovenState = false; //TODO: unless you can read ovenState you'll need to keep track everywhere it is changed
 boolean smokerState = false; //TODO: unless you can read ovenState you'll need to keep track everywhere it is changed
 boolean runSmoker = 0; // inside RUN state check variable, if smoker was set in SETTING state
+
+
+//  Timer ****************************************************************************
+// Variables for the timer
+
+boolean runTimer = 0;
+
+
+
 
 // Initialization **********************************************************
 // The setup function runs once when you press reset or power the board
@@ -231,10 +245,10 @@ void setup() {
 
    
     //Countdown
-//      // Count-down timer with 21s
-//      tDown.setCounter(0, 0, 21, tDown.COUNT_DOWN);
-//     // Call print_time2() method every 1s.
-//      tDown.setInterval(print_time2, 1000);
+      // Count-down timer with 21s
+   //  tDown.setCounter(0, 0, 21, tDown.COUNT_DOWN);
+    // Call print_time2() method every 1s.
+   //  tDown.setInterval(print_time2, 1000);
 
 
 
@@ -800,56 +814,172 @@ void loop() {
                Serial.println(F("Entered STM_STATE_TIMER"));
             #endif      
             displayTitle("TIMER");
-            displayCommandSmall1("Not yet supported - Again: Press up");
-            displayCommandSmall2("Show summary: Press down");
+            displayCommandSmall1("Set: Press enter");
+            displayCommandSmall2("NO: Press down");   
+            //displayTimer(setTimerHour()":" setTimerMin());
+            stm_time_SubState = STM_SUBSTATE_SET_HOUR_TIMER;
+            value = 0;
             stm_entryFlag = FALSE;
+            clearButtonAllFlags();
          }
+
+            switch (stm_SubState)
+         {
+               
+            case STM_SUBSTATE_SET_TIMER:
+
+               
+            if(stm_sub_entryFlag == TRUE)
+            {
+               #ifdef DEBUG
+                  Serial.println(F("STM_SUBSTATE_SET_TIMER"));
+               #endif
+               displayTitle("TIMER");
+               testDisplayOutput(value);
+               stm_sub_entryFlag = FALSE;
+            }  
+            break;
+
+         }
+
+      
+
+         switch(stm_time_SubState)
+         {
+            case STM_SUBSTATE_SET_HOUR_TIMER:
+               #ifdef DEBUG
+                  Serial.println(F("STM_SUBSTATE_SET_HOUR_TIMER"));
+               #endif
+               if(stm_sub_entryFlag == TRUE)
+               {
+                  displayTitle("SET_HOUR");
+                  testDisplayOutput(value);
+                  stm_sub_entryFlag = FALSE;
+               }                        
+               if(value > 23) value = 0;
+               // Show value on display
+               
+               // Display only, if the value changes
+               if (value != oldValue)
+               {
+                  testDisplayOutput(value);
+                  oldValue = value;
+               }
+               
+               if(nextState == 1)
+               {
+                  setTimerHour(value);
+                  value = 1;
+                  nextState = 0;
+                  stm_sub_entryFlag = TRUE;
+                  stm_time_SubState = STM_SUBSTATE_SET_MIN_TIMER;
+               }
+            break;
+
+            case STM_SUBSTATE_SET_MIN_TIMER:
+               #ifdef DEBUG
+                  Serial.println(F("STM_SUBSTATE_SET_MIN"));
+               #endif
+               if(stm_sub_entryFlag == TRUE)
+               {
+                  displayTitle("SET_MIN");
+                  testDisplayOutput(value);
+                  stm_sub_entryFlag = FALSE;
+               }  
+               if(value > 59) value = 0;
+               // Show value on display
+               // Display only, if the value changes
+               if (value != oldValue)
+               {
+                  testDisplayOutput(value);
+                  oldValue = value;
+               }
+               
+               
+               if(nextState == 1)
+               {
+                  setTimerMin(value);
+                //  value = 1;
+                  nextState = 0;
+                  stm_sub_entryFlag = TRUE;
+                  stm_exitFlag = TRUE;
+                 stm_newState = STM_STATE_SUMMARY;
+               }
+            break;
+         }
+
+
+          
+         if(getButtonStateUp())
+         {
+            value++;
+         }
+
+         if(getButtonStateEnter())
+         {
+            nextState = 1;
+         }
+
+         if(getButtonStateDown())
+         {
+            value--;
+         }
+         
+         #ifdef DEBUG
+            Serial.print("Value: ");
+            Serial.println(value);
+         #endif
+
+
+displayTimer();
+
+         
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
+/*
 
 
 
 //  
-//  tDown.run();
+  tDown.run();
 //
 //    
-//  if (Serial.available() > 0)
-//  {
-//    char c = toupper(Serial.read());
+ if (Serial.available() > 0)
+  {
+   char c = toupper(Serial.read());
 //
-//    switch (c)
-//    {
-//      case 'T':
-//        tDown.stop();
-//        break;
-//      case 'R':
-//        tDown.restart();
-//        break;
-//      case 'S':
-//        tDown.start();
-//        break;
-//      case 'P':
-//        tDown.pause();
-//        break;
-//      default:
-//        break;
-//    }
-//  }
+    switch (c)
+    {
+      case 'T':
+       tDown.stop();
+       break;
+      case 'R':
+        tDown.restart();
+        break;
+     case 'S':
+        tDown.start();
+        break;
+      case 'P':
+       tDown.pause();
+       break;
+      default:
+        break;
+    }
+  }
 //
 //
-//void print_time2()
-//{
-//  Serial.print("tDown: ");
-//  Serial.println(tDown.getCurrentTime());
-//}
-//     
-//void tDownComplete()
-//{
-//  digitalWrite(13, LOW);
-//}
+void print_time2()
+{
+  Serial.print("tDown: ");
+ Serial.println(tDown.getCurrentTime());
+}
+     
+void tDownComplete()
+{
+  digitalWrite(13, LOW);
+}
 
-
+*/
  
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -863,15 +993,22 @@ void loop() {
 
          if(getButtonStateEnter())
          {
-
+              setTimer(); 
+              stm_newState = STM_STATE_TIMER;
+              //stm_SubState = STM_SUBSTATE_SET_TIMER;
+              stm_sub_entryFlag = TRUE;
            
          }
 
          if(getButtonStateDown())
          {
-            stm_newState = STM_STATE_SUMMARY;
-            stm_exitFlag = TRUE;        
+            resetTimer(); 
+            stm_newState = STM_STATE_SUMMARY;   
+            stm_exitFlag = TRUE;
+                
          }
+
+
 
          if (stm_exitFlag == TRUE)
          {
@@ -951,7 +1088,7 @@ void loop() {
          
          // LOOP
          displayTemperatures();
-         
+         displayTimer();
 //%%%%%%%%%%%%%%%%%%%%% ANNE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 /*
 //2 Punkt Regler mit LED Anzeige
@@ -1045,8 +1182,13 @@ if (runSmoker == 0) {
            // Timer3.disablePwm(RELAIS_HEATER);
             digitalWrite(RELAIS_HEATER, LOW);
             displayCommandSmall1("Heater off");
-            digitalWrite(RED_LED_PIN, HIGH);
-            digitalWrite(GREEN_LED_PIN, LOW);
+            
+                          digitalWrite(RED_LED_PIN, HIGH);
+                          delay (1000);
+                          
+                          digitalWrite(RED_LED_PIN, LOW);
+                          delay (1000);
+                          digitalWrite(GREEN_LED_PIN, LOW);
             ovenState = false;
           }
       else if(LowerLevelHeater <= getTemperatureOven())     
@@ -1055,7 +1197,7 @@ if (runSmoker == 0) {
                           #ifdef DEBUG
                           Serial.println(F("Pulsed signal"));
                           #endif
-
+                      digitalWrite(GREEN_LED_PIN, HIGH);
 
                 currentMillisHeater = millis();
 
@@ -1066,8 +1208,8 @@ if (runSmoker == 0) {
                           #endif
                           
                          digitalWrite(RELAIS_HEATER, LOW);
-                         displayCommandSmall1("Heater Low 1m");
-                         digitalWrite(RED_LED_PIN, LOW);
+                         displayCommandSmall1("Heater Low");
+                       
                          previousMillisHeater = currentMillisHeater;
                          ovenState = false;
                   } 
@@ -1078,8 +1220,8 @@ if (runSmoker == 0) {
                           #endif
                           
                           digitalWrite(RELAIS_HEATER, HIGH);
-                          displayCommandSmall1("Heater High 30s");
-                          digitalWrite(RED_LED_PIN, HIGH);
+                          displayCommandSmall1("Heater High");
+                          
                           previousMillisHeater = currentMillisHeater;
                           ovenState = true; 
                   }
@@ -1134,10 +1276,11 @@ if (getSmokerState() == TRUE)
                           #ifdef DEBUG
                           Serial.println(F("Smoker stop"));
                           #endif
+                          digitalWrite(RED_LED_PIN, HIGH);
                           
                          digitalWrite(RELAIS_SMOKER, LOW);
-                         displayCommandSmall2("Smoker Low 2m");
-                         digitalWrite(RED_LED_PIN, HIGH);
+                         displayCommandSmall2("Smoker Low");
+                         
                          previousMillisSmoker = currentMillisSmoker;
                          smokerState = false;
                          smokerCounter = smokerCounter + 1;
@@ -1151,8 +1294,8 @@ if (getSmokerState() == TRUE)
                             digitalWrite(RELAIS_HEATER, LOW);
                             digitalWrite(RELAIS_SMOKER, HIGH);
                             ovenState = false;
-                            displayCommandSmall2("Somker High 30s");
-                            //digitalWrite(RED_LED_PIN, HIGH);
+                            displayCommandSmall2("Somker High");
+                            
                             previousMillisSmoker = currentMillisSmoker;
                             smokerState = true; 
                           }
@@ -1168,10 +1311,11 @@ if (getSmokerState() == TRUE)
   
      
                           digitalWrite(RELAIS_HEATER, LOW);
-                     
-            
-                         digitalWrite(RED_LED_PIN, HIGH);
-                         digitalWrite(GREEN_LED_PIN, LOW);
+                             
+                          digitalWrite(RED_LED_PIN, LOW);
+      
+                          digitalWrite(GREEN_LED_PIN, LOW);
+                        
                           ovenState = false;
                          }
                      
@@ -1180,6 +1324,8 @@ if (getSmokerState() == TRUE)
                           #ifdef DEBUG
                           Serial.println(F("Pulsed signal"));
                           #endif
+
+                           digitalWrite(RED_LED_PIN, HIGH);
 
 
                 currentMillisHeater = millis();
@@ -1192,7 +1338,7 @@ if (getSmokerState() == TRUE)
                           
                          digitalWrite(RELAIS_HEATER, LOW);
                          displayCommandSmall1("Heater Low 1min");
-                         digitalWrite(RED_LED_PIN, LOW);
+                        
                          previousMillisHeater = currentMillisHeater;
                          ovenState = false;
                   } 
@@ -1204,15 +1350,14 @@ if (getSmokerState() == TRUE)
                           
                           digitalWrite(RELAIS_HEATER, HIGH);
                           displayCommandSmall1("Heater High 30s");
-                         // digitalWrite(RED_LED_PIN, HIGH);
+                        
                           previousMillisHeater = currentMillisHeater;
                           ovenState = true; 
                   }
               } 
 
             
-           digitalWrite(GREEN_LED_PIN, HIGH);
-           digitalWrite(RED_LED_PIN, LOW);
+
            
         }  
    else if((getTemperatureOven() <= getTemperatureOvenSetPoint()-4))
@@ -1262,7 +1407,8 @@ if (getSmokerState() == TRUE)
 
          if(getButtonStateEnter())
          {
-           
+            stm_newState = STM_STATE_SETTINGS;
+            stm_exitFlag = TRUE;
          }
 
          if(getButtonStateDown())
@@ -1373,7 +1519,7 @@ if (getSmokerState() == TRUE)
 
       
       displayTime(); // TBD: Not every cycle
-
+     // displayTimer();
       
 /*   analogWrite(PWM_PIN, 64); // 0 ... 255
 
