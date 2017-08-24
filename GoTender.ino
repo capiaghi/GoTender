@@ -9,7 +9,7 @@
 ///
 /// \author    Christoph Capiaghi, Anne Liebold
 ///
-/// \version   0.5
+/// \version   0.6
 ///
 /// \date      20170817
 /// 
@@ -41,8 +41,8 @@
 #include "Potentiometers.h"         // Read out Potentiometers Meat and Oven
 #include "Controller.h"             // Controls the run state
 //#include "Countimer.h"              // Counter von GitHub
-#include "TimerThree.h"               // für PWM Signal
-#include "FlexiTimer2.h"            // für PWM Signal
+//#include "TimerThree.h"               // für PWM Signal
+//#include "FlexiTimer2.h"            // für PWM Signal
 
 // Private types **************************************************************
 /// \brief Used States
@@ -69,11 +69,9 @@ typedef enum stm_substate_e
 {
    STM_SUBSTATE_SET_TIME,                 /// RTC Time and Date
    STM_SUBSTATE_SET_TEMPERATURE_OVEN,     /// Set temperature
-   STM_SUBSTATE_SET_TEMPERATURE_MEAT,
-  //STM_SUBSTATE_SET_HOUR_TIMER,          /// RTC Hour TIMER
-  //STM_SUBSTATE_SET_MIN_TIMER,   
+   STM_SUBSTATE_SET_TEMPERATURE_MEAT, 
    STM_SUBSTATE_SET_SMOKER,               /// Enable or disable smoker
-   STM_SUBSTATE_SET_TIMER,                 /// thet clock
+   STM_SUBSTATE_SET_TIMER,                /// thet clock
    STM_SUBSTATE_DONE,                     /// Next main state
 } stm_substate_t;
 
@@ -81,13 +79,13 @@ typedef enum stm_substate_e
 /// \details States for the settings state machine
 typedef enum stm_substate_time_e
 {
-  STM_SUBSTATE_SET_HOUR,          /// RTC Hour
-  STM_SUBSTATE_SET_MIN,           /// RTC Min
-  STM_SUBSTATE_SET_HOUR_TIMER,          /// RTC Hour TIMER
-  STM_SUBSTATE_SET_MIN_TIMER,           /// RTC Min TIMER
-  STM_SUBSTATE_SET_DAY,           /// RTC Day
-  STM_SUBSTATE_SET_MONTH,         /// RTC Month
-  STM_SUBSTATE_SET_YEAR,          /// RTC YEAR
+   STM_SUBSTATE_SET_HOUR,           /// RTC Hour
+   STM_SUBSTATE_SET_MIN,            /// RTC Min
+   STM_SUBSTATE_SET_HOUR_TIMER,     /// RTC Hour TIMER
+   STM_SUBSTATE_SET_MIN_TIMER,      /// RTC Min TIMER
+   STM_SUBSTATE_SET_DAY,            /// RTC Day
+   STM_SUBSTATE_SET_MONTH,          /// RTC Month
+   STM_SUBSTATE_SET_YEAR,           /// RTC YEAR
 } stm_substate_time_t;
 
 
@@ -95,9 +93,10 @@ typedef enum stm_substate_time_e
 
 
 // Private constants **********************************************************
-const char       SOFTWARE_VERSION[10]  = "V0.3";
-//const uint16_t   UART_SPEED            = 115200;
+const char       SOFTWARE_VERSION[10]  = "V0.6";
 #define				UART_SPEED				( 115200 )
+#define           MAX_TEMPERATURE_OVEN ( 300 )
+#define           MAX_TEMPERATURE_MEAT ( 300 )
 
 
 // Private macros *************************************************************
@@ -116,6 +115,8 @@ static stm_substate_t         stm_SubState;
 static stm_substate_time_t    stm_time_SubState;
 
 
+
+
 // Private function prototypes ***********************************************
 
 
@@ -126,6 +127,8 @@ static stm_substate_time_t    stm_time_SubState;
 static uint16_t   value = 0;
 static uint8_t    nextState = 0;
 static uint16_t   oldValue = 0;
+static bool       timerSet = false;
+static bool       sysOkay = true;
 
 
 
@@ -284,9 +287,10 @@ void setup() {
    
 }
 
+/* CAPC
+// ----------------------------------------------------------------------------------------------
 
-
-// PWM COMAND *****************************************************************
+// PWM COMMAND *****************************************************************
 // Interrupt service routine for timer2 overflow interrupt
 
               void generatPWM(){
@@ -297,7 +301,7 @@ void setup() {
                 
                 if(state){
                   if(newPwmDuty > 0){
-                    digitalWrite(RELAIS_HEATER, HIGH); 
+                    startHeater( true ); 
                     //digitalWrite(RED_LED_PIN, HIGH);
                   }
 
@@ -309,7 +313,7 @@ void setup() {
                 }
                 else{
                  if(newPwmDuty <1){
-                   digitalWrite(RELAIS_HEATER, LOW);
+                   startHeater( false );
                    //digitalWrite(RED_LED_PIN, LOW);
                  }
                  
@@ -322,8 +326,9 @@ void setup() {
                 } 
               }
 
+// ----------------------------------------------------------------------------------------------             
 
-
+*/
 // Loop **********************************************************
 // The loop function runs over and over again forever
 void loop() {
@@ -637,12 +642,12 @@ void loop() {
          // Entry action
          if (stm_entryFlag == TRUE)
          {        
-           #ifdef DEBUG
-             Serial.println(F("Entered STM_STATE_SETTINGS"));
-           #endif
-           stm_SubState = STM_SUBSTATE_SET_TEMPERATURE_OVEN;
-           clearButtonAllFlags();
-           stm_entryFlag = FALSE;
+            #ifdef DEBUG
+               Serial.println(F("Entered STM_STATE_SETTINGS"));
+            #endif
+            stm_SubState = STM_SUBSTATE_SET_TEMPERATURE_OVEN;
+            clearButtonAllFlags();
+            stm_entryFlag = FALSE;
          }
          //==============================================================================
          // SUB STATES SETTINGS
@@ -653,33 +658,33 @@ void loop() {
             case STM_SUBSTATE_SET_TEMPERATURE_OVEN:
 
                
-            if(stm_sub_entryFlag == TRUE)
-            {
-               #ifdef DEBUG
-                  Serial.println(F("STM_SUBSTATE_SET_TEMPERATURE_OVEN"));
-               #endif
-               displayTitle("TEMP OVEN");
-               testDisplayOutput(value);
-               stm_sub_entryFlag = FALSE;
-            }  
-            
-            value = getPotentiometerOvenVal();
-            // Display only, if the value changes
-            if (value != oldValue)
-            {
-               testDisplayOutput(value);
-               Serial.println(value);  
-               oldValue = value;
-            }
+               if(stm_sub_entryFlag == TRUE)
+               {
+                  #ifdef DEBUG
+                     Serial.println(F("STM_SUBSTATE_SET_TEMPERATURE_OVEN"));
+                  #endif
+                  displayTitle("TEMP OVEN");
+                  testDisplayOutput(value);
+                  stm_sub_entryFlag = FALSE;
+               }  
+               
+               value = getPotentiometerOvenVal();
+               // Display only, if the value changes
+               if (value != oldValue)
+               {
+                  testDisplayOutput(value);
+                  Serial.println(value);  
+                  oldValue = value;
+               }
 
-                         
+                            
 
-            if(getButtonStateEnter())
-            {
-               setTemperatureOvenSetPoint(value); //TBD : Tests. Warning: Sets double value
-               stm_sub_entryFlag = TRUE;
-               stm_SubState = STM_SUBSTATE_SET_TEMPERATURE_MEAT;
-            }
+               if(getButtonStateEnter())
+               {
+                  setTemperatureOvenSetPoint(value); //TBD : Tests. Warning: Sets double value
+                  stm_sub_entryFlag = TRUE;
+                  stm_SubState = STM_SUBSTATE_SET_TEMPERATURE_MEAT;
+               }
 
             break;
 
@@ -708,10 +713,11 @@ void loop() {
                {
                   stm_sub_entryFlag = TRUE;
                   setTemperatureMeatSetPoint(value); //TBD : Tests. Warning: Sets double value
-                  stm_SubState = STM_SUBSTATE_SET_SMOKER;
+                  stm_SubState = STM_SUBSTATE_DONE;
                }
             break;
 
+            /* TBD: Not used anymore: Set smoker through button
             case STM_SUBSTATE_SET_SMOKER:
             
                if(stm_sub_entryFlag == TRUE)
@@ -729,21 +735,21 @@ void loop() {
 
                if(getButtonStateEnter())
                {
-                  setSmoker(); 
+                  //setSmoker(); 
                   stm_sub_entryFlag = TRUE;
 
                   stm_SubState = STM_SUBSTATE_DONE;
                }
                if(getButtonStateDown())
                {
-                  resetSmoker(); 
+                  //resetSmoker(); 
                   stm_sub_entryFlag = TRUE;
                   stm_SubState = STM_SUBSTATE_DONE;
                }
                
             break;
             
-            
+            */
             case STM_SUBSTATE_DONE:
                if(stm_sub_entryFlag == TRUE)
                {
@@ -805,7 +811,7 @@ void loop() {
       //==============================================================================
       case STM_STATE_TIMER:
       /// - Path 3 \n
-      /// Settings: Oven Temperature, meat temperature, smoker on / off
+      /// Sets timer
 
          // Entry action
          if (stm_entryFlag == TRUE)
@@ -816,33 +822,11 @@ void loop() {
             displayTitle("TIMER");
             displayCommandSmall1("Set: Press enter");
             displayCommandSmall2("NO: Press down");   
-            //displayTimer(setTimerHour()":" setTimerMin());
             stm_time_SubState = STM_SUBSTATE_SET_HOUR_TIMER;
             value = 0;
             stm_entryFlag = FALSE;
             clearButtonAllFlags();
          }
-
-            switch (stm_SubState)
-         {
-               
-            case STM_SUBSTATE_SET_TIMER:
-
-               
-            if(stm_sub_entryFlag == TRUE)
-            {
-               #ifdef DEBUG
-                  Serial.println(F("STM_SUBSTATE_SET_TIMER"));
-               #endif
-               displayTitle("TIMER");
-               testDisplayOutput(value);
-               stm_sub_entryFlag = FALSE;
-            }  
-            break;
-
-         }
-
-      
 
          switch(stm_time_SubState)
          {
@@ -899,11 +883,10 @@ void loop() {
                if(nextState == 1)
                {
                   setTimerMin(value);
-                //  value = 1;
                   nextState = 0;
                   stm_sub_entryFlag = TRUE;
                   stm_exitFlag = TRUE;
-                 stm_newState = STM_STATE_SUMMARY;
+                  stm_newState = STM_STATE_SUMMARY;
                }
             break;
          }
@@ -930,61 +913,6 @@ void loop() {
             Serial.println(value);
          #endif
 
-
-displayTimer();
-
-         
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-/*
-
-
-
-//  
-  tDown.run();
-//
-//    
- if (Serial.available() > 0)
-  {
-   char c = toupper(Serial.read());
-//
-    switch (c)
-    {
-      case 'T':
-       tDown.stop();
-       break;
-      case 'R':
-        tDown.restart();
-        break;
-     case 'S':
-        tDown.start();
-        break;
-      case 'P':
-       tDown.pause();
-       break;
-      default:
-        break;
-    }
-  }
-//
-//
-void print_time2()
-{
-  Serial.print("tDown: ");
- Serial.println(tDown.getCurrentTime());
-}
-     
-void tDownComplete()
-{
-  digitalWrite(13, LOW);
-}
-
-*/
- 
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    
-
          if(getButtonStateUp())
          {
             stm_newState = STM_STATE_SETTINGS;
@@ -993,16 +921,16 @@ void tDownComplete()
 
          if(getButtonStateEnter())
          {
-              setTimer(); 
               stm_newState = STM_STATE_TIMER;
-              //stm_SubState = STM_SUBSTATE_SET_TIMER;
+              stm_SubState = STM_SUBSTATE_SET_TIMER;
+              timerSet     = true; // Yes, timer is set
               stm_sub_entryFlag = TRUE;
            
          }
 
          if(getButtonStateDown())
          {
-            resetTimer(); 
+            timerSet     = false;   // No, timer is disabled. Do not use timer
             stm_newState = STM_STATE_SUMMARY;   
             stm_exitFlag = TRUE;
                 
@@ -1082,13 +1010,29 @@ void tDownComplete()
                Serial.println(F("Entered STM_STATE_RUN"));
             #endif      
             displayTitle("RUN");
+            
+            if (timerSet)
+            {
+               startTimer(); // Reads actual time and calculates end time
+            }
+            
             stm_entryFlag = FALSE;
+         }
+         
+         
+         // Timer expired?
+         if (timerSet)
+         {
+            if ( timerExpired() )
+            {
+               stm_exitFlag = TRUE;
+               // Next state correct? TBD Anne ;-)
+            }
          }
          
          
          // LOOP
          displayTemperatures();
-         displayTimer();
 //%%%%%%%%%%%%%%%%%%%%% ANNE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 /*
 //2 Punkt Regler mit LED Anzeige
@@ -1104,7 +1048,7 @@ void tDownComplete()
             #ifdef DEBUG
                Serial.println(F("heater Relais aus"));
             #endif
-            digitalWrite(RELAIS_HEATER, LOW);
+            startHeater( false );
             
             digitalWrite(RED_LED_PIN, HIGH);
             digitalWrite(YELLOW_LED_PIN, HIGH);
@@ -1115,7 +1059,7 @@ void tDownComplete()
              #ifdef DEBUG
                           Serial.println(F("heater Relais ein"));
              #endif
-             digitalWrite(RELAIS_HEATER, HIGH);
+             startHeater( true );
 
 
                           
@@ -1145,7 +1089,7 @@ void tDownComplete()
              }
                 else 
                {
-                digitalWrite(RELAIS_HEATER, LOW);
+                startHeater( false );
                 
                 digitalWrite(RED_LED_PIN, HIGH);
                 digitalWrite(YELLOW_LED_PIN, HIGH);
@@ -1162,14 +1106,11 @@ void tDownComplete()
 */
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  PWM Anne %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-//analogRead(RELAIS_HEATER);
 
 LowerLevelHeater = getTemperatureOvenSetPoint()-3;
 HigherLevelHeater = getTemperatureOvenSetPoint()+3;
 
- //if (timerSet && timerOver) {
-   //  stop the function completely
-  // }
+
 if (runSmoker == 0) {
   
    if ((getTemperatureOven() >= (getTemperatureOvenSetPoint()+5)) || (getTemperatureMeat() >= getTemperatureMeatSetPoint()))
@@ -1180,7 +1121,7 @@ if (runSmoker == 0) {
                           #endif
   
            // Timer3.disablePwm(RELAIS_HEATER);
-            digitalWrite(RELAIS_HEATER, LOW);
+            startHeater( false );
             displayCommandSmall1("Heater off");
             
                           digitalWrite(RED_LED_PIN, HIGH);
@@ -1207,7 +1148,7 @@ if (runSmoker == 0) {
                           Serial.println(F("heater stop"));
                           #endif
                           
-                         digitalWrite(RELAIS_HEATER, LOW);
+                         startHeater( false );
                          displayCommandSmall1("Heater Low");
                        
                          previousMillisHeater = currentMillisHeater;
@@ -1219,7 +1160,7 @@ if (runSmoker == 0) {
                           Serial.println(F("heater on"));
                           #endif
                           
-                          digitalWrite(RELAIS_HEATER, HIGH);
+                          startHeater( true );
                           displayCommandSmall1("Heater High");
                           
                           previousMillisHeater = currentMillisHeater;
@@ -1232,7 +1173,7 @@ if (runSmoker == 0) {
         } 
           else if((getTemperatureOven() <= getTemperatureOvenSetPoint()-4))
             { 
-                          digitalWrite(RELAIS_HEATER, HIGH);
+                          startHeater( true );
                            ovenState = true;
                            
                           #ifdef DEBUG
@@ -1263,8 +1204,13 @@ if (getSmokerState() == TRUE)
               previousMillisSmoker = currentMillisSmoker;
               smokerCounter = 0;
               smokerState = true;
-              digitalWrite(RELAIS_HEATER, LOW);
-              digitalWrite(RELAIS_SMOKER, HIGH);
+              
+              startHeater( false );
+              startSmoker( true );
+              
+              
+              startHeater( false );
+              startSmoker( true );
               ovenState = false;
             }
             runSmoker = 1;
@@ -1278,7 +1224,7 @@ if (getSmokerState() == TRUE)
                           #endif
                           digitalWrite(RED_LED_PIN, HIGH);
                           
-                         digitalWrite(RELAIS_SMOKER, LOW);
+                         startSmoker( false );
                          displayCommandSmall2("Smoker Low");
                          
                          previousMillisSmoker = currentMillisSmoker;
@@ -1291,8 +1237,8 @@ if (getSmokerState() == TRUE)
                             Serial.println(F("Smoker on"));
                             #endif
 
-                            digitalWrite(RELAIS_HEATER, LOW);
-                            digitalWrite(RELAIS_SMOKER, HIGH);
+                            startHeater( false );
+                            startSmoker( true );
                             ovenState = false;
                             displayCommandSmall2("Somker High");
                             
@@ -1310,7 +1256,7 @@ if (getSmokerState() == TRUE)
                           #endif
   
      
-                          digitalWrite(RELAIS_HEATER, LOW);
+                          startHeater( false );
                              
                           digitalWrite(RED_LED_PIN, LOW);
       
@@ -1336,7 +1282,7 @@ if (getSmokerState() == TRUE)
                           Serial.println(F("heater stop"));
                           #endif
                           
-                         digitalWrite(RELAIS_HEATER, LOW);
+                         startHeater( false );
                          displayCommandSmall1("Heater Low 1min");
                         
                          previousMillisHeater = currentMillisHeater;
@@ -1348,7 +1294,7 @@ if (getSmokerState() == TRUE)
                           Serial.println(F("heater on"));
                           #endif
                           
-                          digitalWrite(RELAIS_HEATER, HIGH);
+                          startHeater( true );
                           displayCommandSmall1("Heater High 30s");
                         
                           previousMillisHeater = currentMillisHeater;
@@ -1362,7 +1308,7 @@ if (getSmokerState() == TRUE)
         }  
    else if((getTemperatureOven() <= getTemperatureOvenSetPoint()-4))
    { 
-     digitalWrite(RELAIS_HEATER, HIGH);
+     startHeater( true );
       ovenState = true;
                           #ifdef DEBUG
                           Serial.println(F(" heating up"));
@@ -1382,7 +1328,7 @@ if (getSmokerState() == TRUE)
         }
         if (smokerCounter == 3) {
           runSmoker = 0;
-          resetSmoker();
+          //resetSmoker(); TBD: Was ist das?
           displayCommandSmall2("Smoker stop");
         }
 }
@@ -1422,6 +1368,8 @@ if (getSmokerState() == TRUE)
          {
             // do exit action
             clearButtonAllFlags();
+            startHeater( false ); // Switch off Heater
+            startSmoker( false ); // Switch off Smoker
             stm_exitFlag = FALSE;
             stm_actState = stm_newState;
             stm_entryFlag = TRUE;
@@ -1466,7 +1414,7 @@ if (getSmokerState() == TRUE)
          if (stm_exitFlag == TRUE)
          {
             // do exit action
-            clearButtonAllFlags();
+            clearButtonAllFlags();  
             stm_exitFlag = FALSE;
             stm_actState = stm_newState;
             stm_entryFlag = TRUE;
@@ -1486,6 +1434,7 @@ if (getSmokerState() == TRUE)
             #ifdef DEBUG
                Serial.println(F("Entered STM_STATE_ERROR"));
             #endif
+            sysOkay = false;
             displayTitle("!!!ERROR!!!");             
             stm_entryFlag = FALSE;
          }
@@ -1507,25 +1456,18 @@ if (getSmokerState() == TRUE)
 
 
 
-
-    // Safety
-
-    // if( ...)
-    // Alles aus
-
-
-
-
-
+   // Safety system
+   if ( getTemperatureOven() > MAX_TEMPERATURE_OVEN) sysOkay = false;
+   if ( getTemperatureMeat() > MAX_TEMPERATURE_MEAT) sysOkay = false;
       
-      displayTime(); // TBD: Not every cycle
-     // displayTimer();
       
-/*   analogWrite(PWM_PIN, 64); // 0 ... 255
 
-  // read the input on analog pin 0:
-  int sensorValue = analogRead(AIN0_PIN);
-  String sensorValueStr = String(sensorValue);
- */
+   // Safety: If system is not okay -> Disable heaters
+   if ( !sysOkay )
+   {
+      emergencyOff();
+   }
+ 
+   displayTime(); // TBD: Not every cycle
 
 }

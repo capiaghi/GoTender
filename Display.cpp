@@ -63,10 +63,6 @@ static int16_t oldTemperatureMeatSetPoint    = -1;
 static String oldCmd = "";
 
 
-static uint16_t oldValuet = -1;
-static uint8_t oldHourt = -1;
-static uint8_t oldMint= -1;
-
 // ----------------------------------------------------------------------------
 /// \brief     Initialize Display
 /// \detail    Initialize and sets Background Color
@@ -408,59 +404,3 @@ static void writeString(String text, String oldText, uint8_t xPos, uint8_t yPos)
    TFTscreen.stroke(LCD_FONT_COLOR);
    TFTscreen.text(charArray, xPos, yPos);
 }
-
-
-//*******************************************************************************************************
-//**********************************************************************************************************
-
-void displayTimer()
-{
-   uint8_t hour   =  getTimerHour();
-   uint8_t min    =  getTimerMin();
-   
-   // Update only, if anything changed
-   if(hour != oldHourt || min != oldMint)
-   {
-      String hourStrt;
-      String minStrt;
-      
-      String oldHourStrt;
-      String oldMinStrt;
-      
-      // time format: hh:mm
-      if( hour < 10) // add "0"
-      {
-         hourStrt     = "0" + String(hour);
-         oldHourStrt  = "0" + String(oldHourt);
-      }
-      else
-      {
-         hourStrt     = String(hour);
-         oldHourStrt  = String(oldHourt);
-      }
-      
-      if( min < 10)
-      {
-         minStrt      = "0" + String(min);
-         oldMinStrt   = "0" + String(oldMint);
-      }
-      else
-      {
-         minStrt      = String(min);
-         oldMinStrt   = String(oldMint);
-      }
-
-      String timeStrt     = hourStrt     + ":" + minStrt;
-      String oldTimeStrt  = oldHourStrt  + ":" + oldMinStrt;
-      
-      // Set text size
-      TFTscreen.setTextSize(SMALL_FONT_SIZE);
-      
-      writeString(String(timeStrt), String(oldTimeStrt), 40,120);
-      
-      // Safe old values
-      oldHourt = hour;
-      oldMint = min;
-   }
-}
-

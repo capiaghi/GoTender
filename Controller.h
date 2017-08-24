@@ -5,11 +5,11 @@
 ///
 /// \details   Controller for the run state
 ///
-/// \author    Christoph Capiaghi / Anne Liebold
+/// \author    Christoph Capiaghi
 ///
-/// \version   0.2
+/// \version   0.1
 ///
-/// \date      20170808
+/// \date      20170522
 /// 
 /// \copyright Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -55,23 +55,11 @@ double 		getTemperatureMeatSetPoint();
 void		   setTemperatureOvenSetPoint(double val);
 void		   setTemperatureMeatSetPoint(double val);
 
-//smoker
-void        enableSmoker();         // This command enables the smoker. Call setSmoker first
-void        disableSmoker();
-uint8_t     getSmokerState();
+void        startSmoker(bool start);
+bool        getSmokerState(void);
+void        startHeater(bool start);
 
-void        setSmoker();
-void        resetSmoker();
+void        emergencyOff();
 
-//heater
-void        enableHeater();         // This command enables the smoker. Call setHeater first
-void        disableHeater();
-uint8_t     getHeaterState();
-
-void        setHeater();
-void        resetHeater();
-
-
-
-    
+		
 #endif

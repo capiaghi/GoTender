@@ -5,11 +5,11 @@
 ///
 /// \details   Controller for the run state
 ///
-/// \author    Christoph Capiaghi / Anne Liebold
+/// \author    Christoph Capiaghi
 ///
-/// \version   0.2
+/// \version   0.1
 ///
-/// \date      20170808
+/// \date      20170509
 /// 
 /// \copyright Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -32,11 +32,11 @@
 
 static double  temperatureOvenSetPoint = -1;
 static double  temperatureMeatSetPoint = -1;
-static uint8_t smokerEnable = 0;
-static uint8_t setSmokerState = 0;
 
-static uint8_t heaterEnable = 0;
-static uint8_t setHeaterState = 0;
+
+static bool    allOff = false;         // Emergency Off
+static bool    smokerStateOn = false;  // Smoker off
+
 
 
 // ----------------------------------------------------------------------------
@@ -87,177 +87,89 @@ void setTemperatureMeatSetPoint(double val)
 	temperatureMeatSetPoint = val;
 }
 
-
 // ----------------------------------------------------------------------------
 /// \brief     Enable smoker
-/// \detail    Enables the smoker if the smoker was set
+/// \detail    Enables smoker, if system is okay
 /// \warning   After this command, the smoker is on!
 /// \return    
 /// \todo      
 ///
-void enableSmoker()
+void startSmoker(bool start)
 {
-   if(setSmokerState)
+   if ( !allOff )
    {
-      smokerEnable = TRUE;
+      if (start)
+      {
+         digitalWrite(RELAIS_SMOKER, HIGH);
+         smokerStateOn = true;
+      }
+      else
+      {
+         digitalWrite(RELAIS_SMOKER, LOW);
+         smokerStateOn = false;
+      }
+   }
+   else
+   {
+      digitalWrite(RELAIS_SMOKER, LOW);
+      smokerStateOn = false;
    }
    
 }
 
 // ----------------------------------------------------------------------------
-/// \brief     Disable smoker
+/// \brief     Returns smoker state
 /// \detail    
-/// \warning   
-/// \return    
+/// \warning  
+/// \return    bool: true on, false off
 /// \todo      
 ///
-void disableSmoker()
+bool getSmokerState( void )
 {
-	smokerEnable = FALSE;
+   return smokerStateOn;
 }
-
-// ----------------------------------------------------------------------------
-/// \brief     Get smoker state
-/// \detail    
-/// \warning   
-/// \return    uint8_t smoker state: 0: Disabled, 1: Enabled
-/// \todo      
-///
-uint8_t getSmokerState()
-{
-   return setSmokerState;
-
-}
-
-
-// ----------------------------------------------------------------------------
-/// \brief     Set smoker
-/// \detail    Sets the smoker flag.
-/// \warning   This command "arms" the smoker. Call enableSmoker to start the smoker
-/// \return    
-/// \todo      
-///
-void setSmoker()
-{
-	setSmokerState = TRUE;
-   
-}
-
-// ----------------------------------------------------------------------------
-/// \brief     Reset smoker
-/// \detail    Restes the smoker flag.
-/// \warning   This command "disarms" the smoker.
-/// \return    
-/// \todo      
-///
-void resetSmoker()
-{
-	setSmokerState = FALSE;
-   
-}
-
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 
 // ----------------------------------------------------------------------------
 /// \brief     Enable heater
-/// \detail    Enables the heater if the heater was set
+/// \detail    
 /// \warning   After this command, the heater is on!
 /// \return    
 /// \todo      
 ///
-void enableHeater()
+void startHeater(bool start)
 {
-   if(setHeaterState)
+   if ( !allOff )
    {
-      heaterEnable = TRUE;
+      if(start)
+      {
+         digitalWrite(RELAIS_HEATER, HIGH);
+      }
+      else
+      {
+         digitalWrite(RELAIS_HEATER, LOW);
+      }
    }
-   
+   else
+   {
+      digitalWrite(RELAIS_HEATER, LOW);
+   }
+         
 }
 
+
+
 // ----------------------------------------------------------------------------
-/// \brief     Disable heater
+/// \brief     Emergency off
 /// \detail    
-/// \warning   
+/// \warning   Disables heater and smoker
 /// \return    
-/// \todo      
+/// \todo      Testing
 ///
-void disableHeater()
+
+void emergencyOff( void )
 {
-  heaterEnable = FALSE;
+   allOff = true;
 }
 
-// ----------------------------------------------------------------------------
-/// \brief     Get heater state
-/// \detail    
-/// \warning   
-/// \return    uint8_t heater state: 0: Disabled, 1: Enabled
-/// \todo      
-///
-uint8_t getHeaterState()
-{
-   return setHeaterState;
-
-}
-
-
-// ----------------------------------------------------------------------------
-/// \brief     Set Heater
-/// \detail    Sets the Heater flag.
-/// \warning   This command "arms" the heater. Call enableHeater to start the heater
-/// \return    
-/// \todo      
-///
-void setHeater()
-{
-  setHeaterState = TRUE;
-   
-}
-
-// ----------------------------------------------------------------------------
-/// \brief     Reset heater
-/// \detail    Restes the heater flag.
-/// \warning   This command "disarms" the heater.
-/// \return    
-/// \todo      
-///
-void resetHeater()
-{
-  setHeaterState = FALSE;
-   
-}
-
-
-// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
-//// ----------------------------------------------------------------------------
-///// \brief     Enable header
-///// \detail    Enables the heater
-///// \warning   After this command, the heater is on!
-///// \return    
-///// \todo      
-/////
-//void enableHeater()
-//{
-//   if(setSmokerState)
-//   {
-//      heaterEnable = TRUE;
-//   }
-//   
-//}
-//
-//// ----------------------------------------------------------------------------
-///// \brief     Disable heater
-///// \detail    
-///// \warning   
-///// \return    
-///// \todo      
-/////
-//void disableHeater()
-//{
-//	heaterEnable = FALSE;
-//}
 

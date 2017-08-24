@@ -36,7 +36,6 @@
 #include <DS1307RTC.h>              // RTC
 #include <Wire.h>
 
-
 // Exported types *************************************************************
 /// \brief     Optional description
 /// \details   Optional description (more detailed)
@@ -63,12 +62,17 @@ void setTimeYear(uint16_t value);
 uint8_t checkRTC();
 static void print2digits(int number);
 
-
-uint8_t getTimerHour();
-uint8_t getTimerMin();
-uint8_t checkRTCT();
-
+// Timer
 void setTimerHour(uint8_t value);
 void setTimerMin(uint8_t value);
+uint8_t getTimerHour();
+uint8_t getTimerMin();
+void startTimer();
+bool timerExpired();
+
+
+
+
+
 
 #endif

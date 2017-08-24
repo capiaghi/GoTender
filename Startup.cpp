@@ -42,7 +42,6 @@ uint8_t startup()
 {
 	uint8_t stateTC 	= checkThermoCouples();
 	uint8_t stateRTC 	= checkRTC();
-  uint8_t stateRTCT  = checkRTCT();
 	
 	return (stateTC && stateRTC); // Only when both okay return true
 }

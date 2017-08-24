@@ -31,7 +31,15 @@
 
 // Private constants **********************************************************
 static tmElements_t tm; // Struct with parameters from second to year
-static tmElements_t tmr;
+
+static uint8_t timerHour   = 0;
+static uint8_t timerMin    = 0;
+static uint8_t startHour   = 0;
+static uint8_t startMin    = 0;
+static uint8_t endHour     = 0;
+static uint8_t endMin      = 0;
+
+
 // ----------------------------------------------------------------------------
 /// \brief     Get the current time hour
 /// \detail    
@@ -225,49 +233,27 @@ static void print2digits(int number) {
 }
 
 
-
-//******************************************************************
-//************************************************************************
-
-uint8_t getTimerHour()
-{
-  RTC.read(tmr);
-  return tmr.Hour;
-}
+// Timer **********************************************************
 
 // ----------------------------------------------------------------------------
-/// \brief     Get the current time minute
-/// \detail    
-/// \warning   
-/// \return    current min
-/// \todo
-uint8_t getTimerMin()
-{
-  RTC.read(tmr);
-  return tmr.Minute;
-}
-
-
-
-// ----------------------------------------------------------------------------
-/// \brief     Set the current hour
-/// \detail    Checks input: 0 to 23 allowed
+/// \brief     Set the timer hour
+/// \detail    Checks input: 0 h to 10 h allowed
 /// \warning   
 /// \return    
 /// \todo
 void setTimerHour(uint8_t value)
 {
-   if( value < 0 || value > 23)
+   if( value < 0 || value > 10)
    {
       value = 0;
    }
-  tmr.Hour = value;
-   RTC.write(tmr);
+	timerHour = value;
 }
 
+
 // ----------------------------------------------------------------------------
-/// \brief     Set the current min
-/// \detail    Checks input: 0 to 59 allowed. Set seconds to 0
+/// \brief     Set the timer minute
+/// \detail    Checks input: 0 to 59 allowed.
 /// \warning   
 /// \return    
 /// \todo
@@ -277,28 +263,96 @@ void setTimerMin(uint8_t value)
    {
       value = 0;
    }
-  tmr.Minute = value;
-   tmr.Second = 0;
-   RTC.write(tmr);
+	timerMin = value;
 }
 
 
-uint8_t checkRTCT()
+
+// ----------------------------------------------------------------------------
+/// \brief     Returns the timer hour
+/// \detail    
+/// \warning   
+/// \return    uint8_t timer hour
+/// \todo
+uint8_t getTimerHour()
 {
-
-if (RTC.read(tmr))
-  {
-    Serial.println("Timer Present");
-    Serial.print("Time = ");
-    print2digits(tmr.Hour);
-    Serial.write(':');
-    print2digits(tmr.Minute);
-    Serial.println();
-  }
-    else
-  {
-    Serial.println("E11: The Timer is stopped. Please config time");
-    return 0;
-  }
+   return timerHour;
 }
 
+// ----------------------------------------------------------------------------
+/// \brief     Returns the timer minute
+/// \detail    
+/// \warning   
+/// \return    uint8_t timer minute
+/// \todo
+uint8_t getTimerMin()
+{
+	return timerMin;
+}
+
+
+
+// ----------------------------------------------------------------------------
+/// \brief     Starts the timer
+/// \detail    
+/// \warning   Be sure you have set the timer values (setTimerHour and setTimerMin)
+/// \return    uint8_t timer minute
+/// \todo      Testing
+void startTimer()
+{
+   // Example: Current time 13:55
+   // Timer set to 1 h 10 min
+   // Current time + timer = End time -> 15:05
+   
+   
+   
+   // Read current time (ex. 13:55)
+   startHour   = getTimeHour();      // ex. 1 h
+   startMin    = getTimeMin();       // ex. 10 min
+   
+   // Calculate End time: Read timer and add
+   endHour     = startHour + timerHour; // 13 + 1 = 14
+   endMin      = startMin + timerMin;   // 55 + 10 = 65
+
+   // For this example, we get the end time 14:65
+   // Correction:
+   
+   if ( endMin > 59 )
+   {
+      endHour++;              // Increase Hour -> 14 + 1 = 15
+      endMin = endMin % 60;   // Wrap min: 65 mod 60 = 5  
+   }
+   // Resulting in 15:05 (correct)
+   
+   // What if the timer goes over midnight?
+   if (endHour > 24)
+   {
+      endHour = endHour % 24;
+   }
+   
+   // Now everything is set.
+   // Timer is expired, if:
+   //    current hour   >= endHour 
+   //    current min    >= endMin   
+   
+   
+}
+
+// ----------------------------------------------------------------------------
+/// \brief     Returns the state of the timer
+/// \detail    
+/// \warning   NOT WORKING WHEN TIMER GOES OVER MIDNIGHT
+/// \return    bool: true finished, false running
+/// \todo
+bool timerExpired()
+{
+   // now >= start
+   if( (getTimeHour() >= endHour) && (getTimeMin() >= endMin) )
+   {
+      return true;
+   }
+   else
+   {
+      return false;
+   }
+}

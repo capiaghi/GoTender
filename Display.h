@@ -94,8 +94,4 @@ static void writeString(String text, String oldText, uint8_t xPos, uint8_t yPos)
 
 void testDisplayOutput(uint16_t value);
 
-//**************************************************************
-//**************************************************************
-void displayTimer();
-
 #endif
