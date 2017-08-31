@@ -404,3 +404,21 @@ static void writeString(String text, String oldText, uint8_t xPos, uint8_t yPos)
    TFTscreen.stroke(LCD_FONT_COLOR);
    TFTscreen.text(charArray, xPos, yPos);
 }
+
+ /* Anne
+static void displayTimer()
+{
+   int16_t timerHour = getTimerHour();
+   int16_t timerMin = getTimerMin();
+   
+   // Update only, if anything changed
+   if((timerHour != oldtimerHour))
+   {    
+      TFTscreen.stroke(LCD_FONT_COLOR);
+      TFTscreen.setTextSize(SMALL_FONT_SIZE);
+      writeString(String(timerHour) + " :", String(timerMin), 45,100);
+      // Safe old values
+      oldtimerHour = imerHour;
+   }
+}
+*/

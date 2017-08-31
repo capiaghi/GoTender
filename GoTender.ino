@@ -11,7 +11,7 @@
 ///
 /// \version   0.6
 ///
-/// \date      20170817
+/// \date      20170825
 /// 
 /// \copyright Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -185,11 +185,11 @@ unsigned long previousMillisTimer = 0;
 unsigned long currentMillisTimer = 0;
 
 
-double intervalHighHeater = 20000; // modify so it is 5 second intervals - probably needs to be in ms -- 10sec
-double intervalLowHeater = 120000; // modify so it is 20 seconds (2min) intervals$ ---1 min
+double intervalHighHeater = 40000; // modify so it is 5 second intervals - probably needs to be in ms -- 40sec
+double intervalLowHeater = 720000; // modify so it is 20 seconds (2min) intervals$ ---12 min
 
-double intervalHighSmoker = 20000; // modify so it is 5 second intervals - probably needs to be in ms --30sec
-double intervalLowSmoker = 300000; // modify so it is 20 seconds (2min) intervals$ --- 5min
+double intervalHighSmoker = 25000; // modify so it is 5 second intervals - probably needs to be in ms --25sec
+double intervalLowSmoker = 180000; // modify so it is 20 seconds (2min) intervals$ --- 2min
 
 int smokerCounter = 0; //used to determine how many pulses the smoker does
 
@@ -1126,6 +1126,7 @@ if (runSmoker == 0) {
             
                           digitalWrite(RED_LED_PIN, HIGH);
                           delay (1000);
+                          digitalWrite(YELLOW_LED_PIN, HIGH);
                           
                           digitalWrite(RED_LED_PIN, LOW);
                           delay (1000);
@@ -1174,13 +1175,13 @@ if (runSmoker == 0) {
           else if((getTemperatureOven() <= getTemperatureOvenSetPoint()-4))
             { 
                           startHeater( true );
-                           ovenState = true;
+                          ovenState = true;
                            
                           #ifdef DEBUG
                           Serial.println(F("LED BLink heat up"));
                           #endif
                           displayCommandSmall1("Heating up");
-                          
+                          digitalWrite(YELLOW_LED_PIN, HIGH);
                           digitalWrite(GREEN_LED_PIN, HIGH);
                           delay (1000);
                           
@@ -1216,13 +1217,13 @@ if (getSmokerState() == TRUE)
             runSmoker = 1;
 
         }
-        if((runSmoker == 1) && (smokerCounter < 3)) {
+        if((runSmoker == 1) && (smokerCounter < 6)) {
                 if (((currentMillisSmoker - previousMillisSmoker) >= intervalHighSmoker)) {     
                          if(smokerState == true) {
                           #ifdef DEBUG
                           Serial.println(F("Smoker stop"));
                           #endif
-                          digitalWrite(RED_LED_PIN, HIGH);
+                          digitalWrite(YELLOW_LED_PIN, HIGH);
                           
                          startSmoker( false );
                          displayCommandSmall2("Smoker Low");
@@ -1326,7 +1327,7 @@ if (getSmokerState() == TRUE)
 
               } 
         }
-        if (smokerCounter == 3) {
+        if (smokerCounter == 6) {
           runSmoker = 0;
           //resetSmoker(); TBD: Was ist das?
           displayCommandSmall2("Smoker stop");
@@ -1469,5 +1470,5 @@ if (getSmokerState() == TRUE)
    }
  
    displayTime(); // TBD: Not every cycle
-
+  // displayTimer(); //ANNE
 }
