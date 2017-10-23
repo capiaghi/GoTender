@@ -36,17 +36,23 @@ static TFT TFTscreen = TFT(SPI_CS_LCD_PIN, DC_LCD_PIN, RESET_LCD_PIN);
 
 
 #define XPOS_OVEN          ( 40 )
+<<<<<<< HEAD
 #define XPOS_DATE          ( 100 )
 #define XPOS_TIME		   ( 125 )
 #define XPOS_TIMER         ( 0 )
+=======
+>>>>>>> origin/master
 #define XPOS_MEAT          ( XPOS_OVEN + 40 )
 #define XPOS_SMOKER        ( XPOS_MEAT + 40 )
 
 #define YPOS_LABELS        ( 80 )
 #define YPOS_SPACE         ( 10 )
+<<<<<<< HEAD
 #define YPOS_DATE          ( 120 )
 #define YPOS_TIME		   ( 0 )
 #define YPOS_TIMER         YPOS_DATE
+=======
+>>>>>>> origin/master
 
 
 // Private constants **********************************************************
@@ -57,6 +63,7 @@ static char charArray[CHAR_ARRAY_LENGTH];
 static char charArrayTitle[CHAR_ARRAY_LENGTH_TITLE];
 static char oldCharArray[CHAR_ARRAY_LENGTH] = ""; 
 
+<<<<<<< HEAD
 static uint16_t oldValue = 0;
 static uint8_t oldHour = 0;
 static uint8_t oldMin = 0;
@@ -68,6 +75,16 @@ static int16_t oldTemperatureOven            = 0;
 static int16_t oldTemperatureMeat            = 0;
 static int16_t oldTemperatureOvenSetPoint    = 0;
 static int16_t oldTemperatureMeatSetPoint    = 0;
+=======
+static uint16_t oldValue = -1;
+static uint8_t oldHour = -1;
+static uint8_t oldMin = -1;
+
+static int16_t oldTemperatureOven            = -1;
+static int16_t oldTemperatureMeat            = -1;
+static int16_t oldTemperatureOvenSetPoint    = -1;
+static int16_t oldTemperatureMeatSetPoint    = -1;
+>>>>>>> origin/master
 
 static String oldCmd = "";
 
@@ -171,7 +188,11 @@ void displayTime()
       // Set text size
       TFTscreen.setTextSize(SMALL_FONT_SIZE);
       
+<<<<<<< HEAD
       writeString(String(timeStr), String(oldTimeStr), XPOS_TIME, YPOS_TIME);
+=======
+      writeString(String(timeStr), String(oldTimeStr), 125, 0);
+>>>>>>> origin/master
       
       // Safe old values
       oldHour = hour;
@@ -221,7 +242,11 @@ void displayDate()
    // Font text size
    TFTscreen.setTextSize(SMALL_FONT_SIZE);
    
+<<<<<<< HEAD
    writeString(String(dateStr), String(""), XPOS_DATE, YPOS_DATE);
+=======
+   writeString(String(dateStr), String(""), 100, 120);
+>>>>>>> origin/master
    
 }
 
@@ -246,6 +271,7 @@ void displayCommand(String cmd)
 /// \todo      - 
 void displayCommandSmall1(String cmd)
 {
+<<<<<<< HEAD
 	char cmdChar[10];
 	char cmdOldChar[10];
 	
@@ -259,6 +285,11 @@ void displayCommandSmall1(String cmd)
 		oldCmd = cmd.substring(0);
 	}
 
+=======
+   TFTscreen.setTextSize(SMALL_FONT_SIZE);
+   writeString(cmd, oldCmd, 0, 50);
+   oldCmd = cmd.substring(0);
+>>>>>>> origin/master
 }
 
 // ----------------------------------------------------------------------------
@@ -344,6 +375,7 @@ static void displaySetPointTemperature()
 void displayRefresh()
 {
    first = 1;   
+<<<<<<< HEAD
    oldValue = 0;
    oldHour = 0;
    oldMin = 0;
@@ -353,11 +385,23 @@ void displayRefresh()
    oldTemperatureMeatSetPoint    = 0;
    oldTimerHour                  = 0;
    oldTimerMin                   = 0;
+=======
+   oldValue = -1;
+   oldHour = -1;
+   oldMin = -1;
+   oldTemperatureOven            = -1;
+   oldTemperatureMeat            = -1;
+   oldTemperatureOvenSetPoint    = -1;
+   oldTemperatureMeatSetPoint    = -1;
+>>>>>>> origin/master
    oldCmd = "";
    displaySmokerState();
    displayDate();
    displayTemperatures();
+<<<<<<< HEAD
    displayTimer();
+=======
+>>>>>>> origin/master
 }
 
 // ----------------------------------------------------------------------------
@@ -394,6 +438,7 @@ void displaySmokerState()
 {
    if(getSmokerState())
    {
+<<<<<<< HEAD
 	   if (getArmSmokerState()) // Armed: Green circle
 	   {
 		   TFTscreen.stroke(LCD_CIRCLE_COLOR_SMOKER_ARMED);
@@ -402,11 +447,15 @@ void displaySmokerState()
 	   {
 		   TFTscreen.stroke(LCD_CIRCLE_COLOR_SMOKER_NOT_ARMED);
 	   }
+=======
+      TFTscreen.stroke(LCD_FONT_COLOR);
+>>>>>>> origin/master
       TFTscreen.fill(LCD_SMOKER_STATE_COLOR);
       TFTscreen.circle(XPOS_SMOKER + 10, YPOS_LABELS + 2*YPOS_SPACE, CIRCLE_RADIUS); // TBD Coordinates
    }
    else
    {
+<<<<<<< HEAD
 		if (getArmSmokerState()) // Armed: Green circle
 	   {
 		   TFTscreen.stroke(LCD_CIRCLE_COLOR_SMOKER_ARMED);
@@ -415,6 +464,9 @@ void displaySmokerState()
 	   {
 		   TFTscreen.stroke(LCD_CIRCLE_COLOR_SMOKER_NOT_ARMED);
 	   }
+=======
+      TFTscreen.stroke(LCD_FONT_COLOR);
+>>>>>>> origin/master
       TFTscreen.fill(LCD_BACKGROUND_COLOR);
       TFTscreen.circle(XPOS_SMOKER + 10, YPOS_LABELS + 2*YPOS_SPACE, CIRCLE_RADIUS); // TBD Coordinates
    }
@@ -441,6 +493,7 @@ static void writeString(String text, String oldText, uint8_t xPos, uint8_t yPos)
    TFTscreen.text(charArray, xPos, yPos);
 }
 
+<<<<<<< HEAD
 
 
 // ----------------------------------------------------------------------------
@@ -522,3 +575,22 @@ void displayTimerSettings()
 	oldTimer = timer;
 }
 
+=======
+ /* Anne
+static void displayTimer()
+{
+   int16_t timerHour = getTimerHour();
+   int16_t timerMin = getTimerMin();
+   
+   // Update only, if anything changed
+   if((timerHour != oldtimerHour))
+   {    
+      TFTscreen.stroke(LCD_FONT_COLOR);
+      TFTscreen.setTextSize(SMALL_FONT_SIZE);
+      writeString(String(timerHour) + " :", String(timerMin), 45,100);
+      // Safe old values
+      oldtimerHour = imerHour;
+   }
+}
+*/
+>>>>>>> origin/master

@@ -186,11 +186,19 @@ unsigned long previousMillisTimer = 0;
 unsigned long currentMillisTimer = 0;
 
 
+<<<<<<< HEAD
 double intervalHighHeater = 10000; // modify so it is 40 second intervals - probably needs to be in ms 
 double intervalLowHeater = 120000; // modify so it is 10 min intervals$ 
 
 double intervalHighSmoker = 5000; // modify so it is 40 second intervals - probably needs to be in ms 
 double intervalLowSmoker = 300000; // modify so it is 5 min intervals$ 
+=======
+double intervalHighHeater = 40000; // modify so it is 5 second intervals - probably needs to be in ms -- 40sec
+double intervalLowHeater = 720000; // modify so it is 20 seconds (2min) intervals$ ---12 min
+
+double intervalHighSmoker = 25000; // modify so it is 5 second intervals - probably needs to be in ms --25sec
+double intervalLowSmoker = 180000; // modify so it is 20 seconds (2min) intervals$ --- 2min
+>>>>>>> origin/master
 
 int smokerCounter = 0; //used to determine how many pulses the smoker does
 
@@ -1048,6 +1056,7 @@ if (runSmoker == 0) {
 	
 	startSmoker( false );
   
+<<<<<<< HEAD
    // OFF: SetPoint + 5 or meat set point reached
 	if ((getTemperatureOven() >= (getTemperatureOvenSetPoint()+5)) || (getTemperatureMeat() >= getTemperatureMeatSetPoint()))
 	{
@@ -1056,6 +1065,22 @@ if (runSmoker == 0) {
 	    digitalWrite(RED_LED_PIN, HIGH);
 	    digitalWrite(GREEN_LED_PIN, LOW);
 	    digitalWrite(YELLOW_LED_PIN, LOW);
+=======
+   if ((getTemperatureOven() >= (getTemperatureOvenSetPoint()+5)) || (getTemperatureMeat() >= getTemperatureMeatSetPoint()))
+          {
+
+                          #ifdef DEBUG
+                          Serial.println(F("Pulsed signal and heater stop"));
+                          #endif
+  
+           // Timer3.disablePwm(RELAIS_HEATER);
+            startHeater( false );
+            displayCommandSmall1("Heater off");
+            
+                          digitalWrite(RED_LED_PIN, HIGH);
+                          delay (1000);
+                          digitalWrite(YELLOW_LED_PIN, HIGH);
+>>>>>>> origin/master
                           
 		ovenState = false;
     }
@@ -1108,11 +1133,22 @@ if (runSmoker == 0) {
                           startHeater( true );
                           ovenState = true;
                            
+<<<<<<< HEAD
                          // #ifdef DEBUG
                          // Serial.println(F("LED BLink heat up"));
                          // #endif
                           displayCommandSmall1("Heating Up");
                           digitalWrite(YELLOW_LED_PIN, HIGH);
+=======
+                          #ifdef DEBUG
+                          Serial.println(F("LED BLink heat up"));
+                          #endif
+                          displayCommandSmall1("Heating up");
+                          digitalWrite(YELLOW_LED_PIN, HIGH);
+                          digitalWrite(GREEN_LED_PIN, HIGH);
+                          delay (1000);
+                          
+>>>>>>> origin/master
                           digitalWrite(GREEN_LED_PIN, LOW);
                           digitalWrite(RED_LED_PIN, LOW);
             } 
@@ -1145,6 +1181,7 @@ if (runSmoker == 1)
             runSmoker = 1;
 
         }
+<<<<<<< HEAD
         if((runSmoker == 1) && (smokerCounter < 7)) {
                 if (((currentMillisSmoker - previousMillisSmoker) >= intervalHighSmoker)) {     
                          if(smokerState == true) {
@@ -1156,6 +1193,15 @@ if (runSmoker == 1)
                           digitalWrite(YELLOW_LED_PIN, LOW);
                           digitalWrite(GREEN_LED_PIN, HIGH); 
                           digitalWrite(RED_LED_PIN, LOW); 
+=======
+        if((runSmoker == 1) && (smokerCounter < 6)) {
+                if (((currentMillisSmoker - previousMillisSmoker) >= intervalHighSmoker)) {     
+                         if(smokerState == true) {
+                          #ifdef DEBUG
+                          Serial.println(F("Smoker stop"));
+                          #endif
+                          digitalWrite(YELLOW_LED_PIN, HIGH);
+>>>>>>> origin/master
                           
                          startSmoker( false );
                          displayCommandSmall2("Smoker Stop");
@@ -1251,9 +1297,16 @@ if (runSmoker == 1)
                  
               } 
         }
+<<<<<<< HEAD
         if (smokerCounter == 7) {
 			startSmoker( false );
 			displayCommandSmall2("Smoker Stop");
+=======
+        if (smokerCounter == 6) {
+          runSmoker = 0;
+          //resetSmoker(); TBD: Was ist das?
+          displayCommandSmall2("Smoker stop");
+>>>>>>> origin/master
         }
 }
 
@@ -1419,5 +1472,9 @@ if (runSmoker == 1)
    
  
    displayTime(); // TBD: Not every cycle
+<<<<<<< HEAD
    displayTimer(); 
+=======
+  // displayTimer(); //ANNE
+>>>>>>> origin/master
 }
