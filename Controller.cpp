@@ -30,13 +30,13 @@
 
 // Private constants **********************************************************
 
-static double  temperatureOvenSetPoint = -1;
-static double  temperatureMeatSetPoint = -1;
+static double  	temperatureOvenSetPoint = -1;
+static double  	temperatureMeatSetPoint = -1;
 
 
-static bool    allOff = false;         // Emergency Off
-static bool    smokerStateOn = false;  // Smoker off
-
+static bool    	allOff = false;         // Emergency Off
+static bool    	smokerStateOn = false;  // Smoker off
+static bool		armSmokerState = false; // Smoker is not armed
 
 
 // ----------------------------------------------------------------------------
@@ -87,6 +87,47 @@ void setTemperatureMeatSetPoint(double val)
 	temperatureMeatSetPoint = val;
 }
 
+
+
+// ----------------------------------------------------------------------------
+/// \brief     Arms smoker
+/// \detail    Arms smoker, smoker is off
+/// \warning   After this command, the smoker armed (not on)
+/// \return    
+/// \todo      
+///
+void armSmoker(bool state)
+{
+	armSmokerState = state;
+}
+
+// ----------------------------------------------------------------------------
+/// \brief     Arms smoker
+/// \detail    Arms smoker, smoker is off
+/// \warning   After this command, the smoker armed (not on)
+/// \return    
+/// \todo      
+///
+void disarmSmoker(bool start)
+{
+	armSmokerState = false;
+}
+
+
+// ----------------------------------------------------------------------------
+/// \brief     Returns Arms smoker state
+/// \detail    Armed: True, not armed: false
+/// \warning   
+/// \return    Smoker state, if armed or not
+/// \todo      
+///
+bool getArmSmokerState()
+{
+	return armSmokerState;
+}
+
+
+
 // ----------------------------------------------------------------------------
 /// \brief     Enable smoker
 /// \detail    Enables smoker, if system is okay
@@ -100,17 +141,23 @@ void startSmoker(bool start)
    {
       if (start)
       {
-         digitalWrite(RELAIS_SMOKER, HIGH);
-         smokerStateOn = true;
+		 if( armSmokerState )
+		 {
+			Serial.println(F("SWITCH SMOKER ON"));  
+			digitalWrite(RELAIS_SMOKER, HIGH);
+			smokerStateOn = true;
+		 }
       }
       else
       {
+		 Serial.println(F("SWITCH SMOKER OFF"));  
          digitalWrite(RELAIS_SMOKER, LOW);
          smokerStateOn = false;
       }
    }
    else
    {
+	  Serial.println(F("SWITCH SMOKER OFF"));
       digitalWrite(RELAIS_SMOKER, LOW);
       smokerStateOn = false;
    }
@@ -141,17 +188,20 @@ void startHeater(bool start)
 {
    if ( !allOff )
    {
-      if(start)
+      if( start == TRUE )
       {
+		 Serial.println(F("SWITCH HEATER ON"));
          digitalWrite(RELAIS_HEATER, HIGH);
       }
       else
       {
+		 Serial.println(F("SWITCH HEATER OFF"));
          digitalWrite(RELAIS_HEATER, LOW);
       }
    }
    else
    {
+	  Serial.println(F("SWITCH HEATER OFF"));
       digitalWrite(RELAIS_HEATER, LOW);
    }
          
@@ -169,7 +219,10 @@ void startHeater(bool start)
 
 void emergencyOff( void )
 {
-   allOff = true;
+	Serial.println(F("EMERGENCY OFF"));
+    allOff = true;
+	digitalWrite(RELAIS_HEATER, LOW);
+	digitalWrite(RELAIS_SMOKER, LOW);
 }
 
 

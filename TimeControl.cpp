@@ -237,13 +237,13 @@ static void print2digits(int number) {
 
 // ----------------------------------------------------------------------------
 /// \brief     Set the timer hour
-/// \detail    Checks input: 0 h to 10 h allowed
+/// \detail    Checks input: 0 h to 24 h allowed
 /// \warning   
 /// \return    
 /// \todo
 void setTimerHour(uint8_t value)
 {
-   if( value < 0 || value > 10)
+   if( value < 0 || value > 24)
    {
       value = 0;
    }
@@ -304,11 +304,12 @@ void startTimer()
    // Timer set to 1 h 10 min
    // Current time + timer = End time -> 15:05
    
-   
+   Serial.println("Start Timer");
    
    // Read current time (ex. 13:55)
-   startHour   = getTimeHour();      // ex. 1 h
+   startHour   = getTimeHour();      // ex. 13 h
    startMin    = getTimeMin();       // ex. 10 min
+   
    
    // Calculate End time: Read timer and add
    endHour     = startHour + timerHour; // 13 + 1 = 14
@@ -341,7 +342,7 @@ void startTimer()
 // ----------------------------------------------------------------------------
 /// \brief     Returns the state of the timer
 /// \detail    
-/// \warning   NOT WORKING WHEN TIMER GOES OVER MIDNIGHT
+/// \warning   -
 /// \return    bool: true finished, false running
 /// \todo
 bool timerExpired()
@@ -356,3 +357,28 @@ bool timerExpired()
       return false;
    }
 }
+
+
+// ----------------------------------------------------------------------------
+/// \brief     Returns the timer end hour (for example 13:14 -> 13)
+/// \detail    
+/// \warning   
+/// \return    uint8_t timer end hour
+/// \todo
+uint8_t getEndHour()
+{
+  return endHour;
+}
+
+
+// ----------------------------------------------------------------------------
+/// \brief     Returns the timer end min (for example 13:14 -> 14)
+/// \detail    
+/// \warning   
+/// \return    uint8_t timer end min
+/// \todo
+uint8_t getEndMin()
+{
+  return endMin;
+}
+

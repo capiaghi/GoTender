@@ -71,8 +71,8 @@ void startTimer();
 bool timerExpired();
 
 
-
-
+uint8_t getEndHour();
+uint8_t getEndMin();
 
 
 #endif

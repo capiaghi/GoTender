@@ -63,10 +63,12 @@ const uint8_t    CIRCLE_RADIUS      = 5;
 // ST7735_MAGENTA 0xF81F
 // ST7735_YELLOW  0xFFE0  
 // ST7735_WHITE   0xFFFF
-#define LCD_BACKGROUND_COLOR     ( ST7735_BLACK )
-#define LCD_FONT_COLOR           ( ST7735_WHITE )
-#define INVERSE_LCD_FONT_COLOR   ( LCD_BACKGROUND_COLOR )
-#define LCD_SMOKER_STATE_COLOR   ( ST7735_RED )
+#define LCD_BACKGROUND_COLOR     			( ST7735_BLACK )
+#define LCD_FONT_COLOR           			( ST7735_WHITE )
+#define INVERSE_LCD_FONT_COLOR   			( LCD_BACKGROUND_COLOR )
+#define LCD_SMOKER_STATE_COLOR   			( ST7735_RED )
+#define LCD_CIRCLE_COLOR_SMOKER_ARMED 		( ST7735_RED )
+#define LCD_CIRCLE_COLOR_SMOKER_NOT_ARMED 	( ST7735_WHITE )
 
 
 // Exported functions *********************************************************
@@ -93,5 +95,8 @@ static void writeString(String text, String oldText, uint8_t xPos, uint8_t yPos)
 
 
 void testDisplayOutput(uint16_t value);
+
+void displayTimer();
+void displayTimerSettings();
 
 #endif

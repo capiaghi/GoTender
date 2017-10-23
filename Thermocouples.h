@@ -31,7 +31,7 @@
 
 // Include ********************************************************************
 #include "Arduino.h"
-#include "Adafruit_MAX31855.h"      // Thermocouple
+#include "Adafruit_MAX31855.h"      // Thermocouple https://github.com/adafruit/Adafruit-MAX31855-library
 #include "error_list.h"
 #include "PinMapping.h"
 

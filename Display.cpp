@@ -36,11 +36,17 @@ static TFT TFTscreen = TFT(SPI_CS_LCD_PIN, DC_LCD_PIN, RESET_LCD_PIN);
 
 
 #define XPOS_OVEN          ( 40 )
+#define XPOS_DATE          ( 100 )
+#define XPOS_TIME		   ( 125 )
+#define XPOS_TIMER         ( 0 )
 #define XPOS_MEAT          ( XPOS_OVEN + 40 )
 #define XPOS_SMOKER        ( XPOS_MEAT + 40 )
 
 #define YPOS_LABELS        ( 80 )
 #define YPOS_SPACE         ( 10 )
+#define YPOS_DATE          ( 120 )
+#define YPOS_TIME		   ( 0 )
+#define YPOS_TIMER         YPOS_DATE
 
 
 // Private constants **********************************************************
@@ -51,14 +57,17 @@ static char charArray[CHAR_ARRAY_LENGTH];
 static char charArrayTitle[CHAR_ARRAY_LENGTH_TITLE];
 static char oldCharArray[CHAR_ARRAY_LENGTH] = ""; 
 
-static uint16_t oldValue = -1;
-static uint8_t oldHour = -1;
-static uint8_t oldMin = -1;
+static uint16_t oldValue = 0;
+static uint8_t oldHour = 0;
+static uint8_t oldMin = 0;
+static uint8_t oldTimerHour = 0;
+static uint8_t oldTimerMin = 0;
+static uint16_t oldTimer = 0;
 
-static int16_t oldTemperatureOven            = -1;
-static int16_t oldTemperatureMeat            = -1;
-static int16_t oldTemperatureOvenSetPoint    = -1;
-static int16_t oldTemperatureMeatSetPoint    = -1;
+static int16_t oldTemperatureOven            = 0;
+static int16_t oldTemperatureMeat            = 0;
+static int16_t oldTemperatureOvenSetPoint    = 0;
+static int16_t oldTemperatureMeatSetPoint    = 0;
 
 static String oldCmd = "";
 
@@ -162,7 +171,7 @@ void displayTime()
       // Set text size
       TFTscreen.setTextSize(SMALL_FONT_SIZE);
       
-      writeString(String(timeStr), String(oldTimeStr), 125, 0);
+      writeString(String(timeStr), String(oldTimeStr), XPOS_TIME, YPOS_TIME);
       
       // Safe old values
       oldHour = hour;
@@ -212,7 +221,7 @@ void displayDate()
    // Font text size
    TFTscreen.setTextSize(SMALL_FONT_SIZE);
    
-   writeString(String(dateStr), String(""), 100, 120);
+   writeString(String(dateStr), String(""), XPOS_DATE, YPOS_DATE);
    
 }
 
@@ -237,9 +246,19 @@ void displayCommand(String cmd)
 /// \todo      - 
 void displayCommandSmall1(String cmd)
 {
-   TFTscreen.setTextSize(SMALL_FONT_SIZE);
-   writeString(cmd, oldCmd, 0, 50);
-   oldCmd = cmd.substring(0);
+	char cmdChar[10];
+	char cmdOldChar[10];
+	
+	cmd.toCharArray(cmdChar, 10);
+	oldCmd.toCharArray(cmdOldChar, 10);
+	
+	if (strcmp(cmdChar, cmdOldChar)) // 0: Both strings are equal
+	{
+		TFTscreen.setTextSize(SMALL_FONT_SIZE);
+		writeString(cmd, oldCmd, 0, 50);
+		oldCmd = cmd.substring(0);
+	}
+
 }
 
 // ----------------------------------------------------------------------------
@@ -325,17 +344,20 @@ static void displaySetPointTemperature()
 void displayRefresh()
 {
    first = 1;   
-   oldValue = -1;
-   oldHour = -1;
-   oldMin = -1;
-   oldTemperatureOven            = -1;
-   oldTemperatureMeat            = -1;
-   oldTemperatureOvenSetPoint    = -1;
-   oldTemperatureMeatSetPoint    = -1;
+   oldValue = 0;
+   oldHour = 0;
+   oldMin = 0;
+   oldTemperatureOven            = 0;
+   oldTemperatureMeat            = 0;
+   oldTemperatureOvenSetPoint    = 0;
+   oldTemperatureMeatSetPoint    = 0;
+   oldTimerHour                  = 0;
+   oldTimerMin                   = 0;
    oldCmd = "";
    displaySmokerState();
    displayDate();
    displayTemperatures();
+   displayTimer();
 }
 
 // ----------------------------------------------------------------------------
@@ -372,13 +394,27 @@ void displaySmokerState()
 {
    if(getSmokerState())
    {
-      TFTscreen.stroke(LCD_FONT_COLOR);
+	   if (getArmSmokerState()) // Armed: Green circle
+	   {
+		   TFTscreen.stroke(LCD_CIRCLE_COLOR_SMOKER_ARMED);
+	   }
+	   else
+	   {
+		   TFTscreen.stroke(LCD_CIRCLE_COLOR_SMOKER_NOT_ARMED);
+	   }
       TFTscreen.fill(LCD_SMOKER_STATE_COLOR);
       TFTscreen.circle(XPOS_SMOKER + 10, YPOS_LABELS + 2*YPOS_SPACE, CIRCLE_RADIUS); // TBD Coordinates
    }
    else
    {
-      TFTscreen.stroke(LCD_FONT_COLOR);
+		if (getArmSmokerState()) // Armed: Green circle
+	   {
+		   TFTscreen.stroke(LCD_CIRCLE_COLOR_SMOKER_ARMED);
+	   }
+	   else
+	   {
+		   TFTscreen.stroke(LCD_CIRCLE_COLOR_SMOKER_NOT_ARMED);
+	   }
       TFTscreen.fill(LCD_BACKGROUND_COLOR);
       TFTscreen.circle(XPOS_SMOKER + 10, YPOS_LABELS + 2*YPOS_SPACE, CIRCLE_RADIUS); // TBD Coordinates
    }
@@ -404,3 +440,85 @@ static void writeString(String text, String oldText, uint8_t xPos, uint8_t yPos)
    TFTscreen.stroke(LCD_FONT_COLOR);
    TFTscreen.text(charArray, xPos, yPos);
 }
+
+
+
+// ----------------------------------------------------------------------------
+/// \brief     Displays timer
+/// \detail    Display timer on bottom left, small font size. Updates only when
+///            old value changes
+/// \warning   
+/// \return    -
+/// \todo      - Seconds? Flashing ":"? Tests pending
+void displayTimer()
+{
+   uint8_t timerHour   =  getEndHour();
+   uint8_t timerMin    =  getEndMin();
+      
+   // Update only, if anything changed
+   if(timerHour != oldTimerHour || timerMin != oldTimerMin)
+   {
+      String hourTimerStr;
+      String minTimerStr;
+      
+      String oldTimerHourStr;
+      String oldTimerMinStr;
+      
+      // time format: hh:mm
+      if( timerHour < 10) // add "0"
+      {
+         hourTimerStr     = "0" + String(timerHour);
+         oldTimerHourStr  = "0" + String(oldTimerHour);
+      }
+      else
+      {
+         hourTimerStr     = String(timerHour);
+         oldTimerHourStr  = String(oldTimerHour);
+      }
+      
+      if( timerMin < 10)
+      {
+         minTimerStr      = "0" + String(timerMin);
+         oldTimerMinStr   = "0" + String(oldTimerMin);
+      }
+      else
+      {
+         minTimerStr        = String(timerMin);
+         oldTimerMinStr   	= String(oldTimerMin);
+      }
+
+      String timerStr     = hourTimerStr     + ":" + minTimerStr;
+      String oldTimerStr  = oldTimerHourStr  + ":" + oldTimerMinStr;
+      
+      // Set text size
+      TFTscreen.setTextSize(SMALL_FONT_SIZE);
+      
+      writeString(timerStr, oldTimerStr, XPOS_TIMER, YPOS_TIMER);
+      
+      // Safe old values
+      oldTimerHour 	= timerHour;
+      oldTimerMin 	= timerMin;
+   }
+}
+
+
+// ----------------------------------------------------------------------------
+/// \brief     Displays timer settings
+/// \detail    Display timer settings on bottom left, small font size. Updates only when
+///            old value changes. Display format: min
+/// \warning   
+/// \return    -
+/// \todo      - 
+void displayTimerSettings()
+{
+	uint16_t timer = getTimerHour() * 60 + getTimerMin();
+	
+	// Set text size
+	TFTscreen.setTextSize(SMALL_FONT_SIZE);
+	String timerStr = String(timer);
+	String oldTimerStr = String(oldTimer) + "         ";
+	writeString(timerStr, oldTimerStr, XPOS_TIMER, YPOS_TIMER);
+	
+	oldTimer = timer;
+}
+

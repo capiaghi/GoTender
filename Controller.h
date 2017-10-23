@@ -52,11 +52,14 @@
 		
 double 		getTemperatureOvenSetPoint();
 double 		getTemperatureMeatSetPoint();
-void		   setTemperatureOvenSetPoint(double val);
-void		   setTemperatureMeatSetPoint(double val);
+void		setTemperatureOvenSetPoint(double val);
+void		setTemperatureMeatSetPoint(double val);
 
 void        startSmoker(bool start);
 bool        getSmokerState(void);
+
+void 		armSmoker(bool state);
+bool		getArmSmokerState();
 void        startHeater(bool start);
 
 void        emergencyOff();
