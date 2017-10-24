@@ -34,9 +34,10 @@ static double  	temperatureOvenSetPoint = -1;
 static double  	temperatureMeatSetPoint = -1;
 
 
-static bool    	allOff = false;         // Emergency Off
-static bool    	smokerStateOn = false;  // Smoker off
-static bool		armSmokerState = false; // Smoker is not armed
+static bool    	allOff         = false;    // Emergency Off
+static bool    	smokerStateOn  = false;    // Smoker state: off
+static bool       heaterStateOn  = false;    // Heater state: Off
+static bool		   armSmokerState = false;    // Smoker is not armed
 
 
 // ----------------------------------------------------------------------------
@@ -157,7 +158,7 @@ void startSmoker(bool start)
    }
    else
    {
-	  Serial.println(F("SWITCH SMOKER OFF"));
+      Serial.println(F("SWITCH SMOKER OFF"));
       digitalWrite(RELAIS_SMOKER, LOW);
       smokerStateOn = false;
    }
@@ -190,23 +191,38 @@ void startHeater(bool start)
    {
       if( start == TRUE )
       {
-		 Serial.println(F("SWITCH HEATER ON"));
+         Serial.println(F("SWITCH HEATER ON"));
          digitalWrite(RELAIS_HEATER, HIGH);
+         heaterStateOn = true;
       }
       else
       {
-		 Serial.println(F("SWITCH HEATER OFF"));
+         Serial.println(F("SWITCH HEATER OFF"));
          digitalWrite(RELAIS_HEATER, LOW);
+         heaterStateOn = false;
       }
    }
    else
    {
-	  Serial.println(F("SWITCH HEATER OFF"));
+      Serial.println(F("SWITCH HEATER OFF"));
       digitalWrite(RELAIS_HEATER, LOW);
+      heaterStateOn = false;
    }
          
 }
 
+
+// ----------------------------------------------------------------------------
+/// \brief     Returns Heater state
+/// \detail    Heater on: true, heater off: false
+/// \warning   
+/// \return    bool heater state
+/// \todo      
+///
+bool getHeaterState()
+{
+	return heaterStateOn;
+}
 
 
 // ----------------------------------------------------------------------------
