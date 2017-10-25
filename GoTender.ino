@@ -105,7 +105,7 @@ typedef enum stm_subState_control_e
 
 
 #define HEATER_ON_TIME_S      ( 30 )    // in seconds
-#define HEATER_OFF_TIME_S     ( 12*60 ) // 
+#define HEATER_OFF_TIME_S     ( 10*60 ) // 
 #define SMOKER_ON_TIME_S      ( 40 )    // 
 #define SMOKER_OFF_TIME_S     ( 7*60 )  // 
 
@@ -214,8 +214,7 @@ void setup() {
    TCCR3A = 0;
    TCCR3B = 0xc;     // CTC mode, prescaler = 256+ (clk/256 (From prescaler)
 
-   //OCR3A = 62500;    // 16 MHz / 256 = 62500 gives exactly one second (2 Output Compare Register)
-   OCR3A = 6250; //TBD
+   OCR3A = 62500;    // 16 MHz / 256 = 62500 gives exactly one second (2 Output Compare Regis
    TIMSK3 |= 0x02;   // Enable output compare match ints
    
    
