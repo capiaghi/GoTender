@@ -73,6 +73,8 @@ static int16_t oldTemperatureMeatSetPoint    = 0;
 
 
 static String oldCmd = "";
+static String oldCmd1 = "";
+static String oldCmd2 = "";
 
 
 // ----------------------------------------------------------------------------
@@ -249,18 +251,10 @@ void displayCommand(String cmd)
 /// \todo      - 
 void displayCommandSmall1(String cmd)
 {
-	char cmdChar[10];
-	char cmdOldChar[10];
-	
-	cmd.toCharArray(cmdChar, 10);
-	oldCmd.toCharArray(cmdOldChar, 10);
-	
-	if (strcmp(cmdChar, cmdOldChar)) // 0: Both strings are equal
-	{
-		TFTscreen.setTextSize(SMALL_FONT_SIZE);
-		writeString(cmd, oldCmd, 0, 50);
-		oldCmd = cmd.substring(0);
-	}
+
+   TFTscreen.setTextSize(SMALL_FONT_SIZE);
+   writeString(cmd, oldCmd1, 0, 50);
+   oldCmd1 = cmd.substring(0);
 
 }
 
@@ -273,8 +267,8 @@ void displayCommandSmall1(String cmd)
 void displayCommandSmall2(String cmd)
 {
    TFTscreen.setTextSize(SMALL_FONT_SIZE);
-   writeString(cmd, oldCmd, 0, 60);
-   oldCmd = cmd.substring(0);
+   writeString(cmd, oldCmd2, 0, 60);
+   oldCmd2 = cmd.substring(0);
 }
 
 

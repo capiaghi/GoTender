@@ -9,7 +9,7 @@
 ///
 /// \author    Christoph Capiaghi, Anne Liebold
 ///
-/// \version   0.7
+/// \version   0.8
 ///
 /// \date      20170825
 /// 
@@ -24,7 +24,7 @@
 ///
 /// \warning   
 ///
-/// \todo     - A lot to do
+/// \todo     - Testing
 ///
 // ****************************************************************************
 // Includes *******************************************************************
@@ -99,11 +99,42 @@ typedef enum stm_subState_control_e
 } stm_subState_control_t;
 
 
-//TBD END
+
+#define UPPER_LEVEL_TEMP      ( 4 )    // SET_POINT + UPPER_LEVEL_TEMP        
+#define LOWER_LEVEL_TEMP      ( 5 )    // SET_POINT - LOWER_LEVEL_TEMP
+
+
+#define HEATER_ON_TIME_S      ( 30 )    // in seconds
+#define HEATER_OFF_TIME_S     ( 12*60 ) // 
+#define SMOKER_ON_TIME_S      ( 40 )    // 
+#define SMOKER_OFF_TIME_S     ( 7*60 )  // 
+
+#define MAX_SMOKER_TIME_S     ( 80 )    // Safety system: Smoker is maximum 80 seconds allowed
+
+#define NUM_OF_SMOKER_CYCLES_BUTTON ( 1 ) // After pressing the button, 1 smoker cycle is executed
+
+uint8_t  numOfSmokerCycles          = 7;   // Predefined vaule for number of smoker cycle. Switch override this value with NUM_OF_SMOKER_CYCLES_BUTTON.
+uint8_t  currentNumOfSmokerCycles   = 0;   // used to determine how many pulses the smoker does
+uint16_t maxSmokerTimeS             = 0;
+uint16_t pulsingCounterS            = 0;
+uint16_t pulsingCounterSmokerS      = 0;
+uint16_t LowerLevelHeater           = 0;
+uint16_t UpperLevelHeater           = 0;
+bool first                          = true;
+
+// Temperature profile
+//     HEATER OFF
+// ------------------------------------------------------ setPoint + UPPER_LEVEL_TEMP
+//     PULSING: 40 s on / 5 min off AND SMOKER CONTROL
+// ------------------------------------------------------ setPoint
+//     PULSING: 40 s on / 5 min off AND SMOKER CONTROL
+// ------------------------------------------------------ setPoint - LOWER_LEVEL_TEMP
+//     HEATER ON
+
 
 
 // Private constants **********************************************************
-const char        SOFTWARE_VERSION[10]  = "V0.7";
+const char        SOFTWARE_VERSION[10]  = "V0.8";
 #define				UART_SPEED				( 115200 )
 #define           MAX_TEMPERATURE_OVEN ( 300 )
 #define           MAX_TEMPERATURE_MEAT ( 300 )
@@ -142,23 +173,24 @@ static bool       sysOkay     = true;
 
 // ISR **********************************************************
 // ----------------------------------------------------------------------------
-/// \brief     Timer interrupt 
-/// \detail    For measurement: Every 10 ms an interrupt
+/// \brief     Timer 3 interrupt 
+/// \detail    For measurement: Every 1 s an interrupt
 /// \warning   
 /// \return   
-/// \todo      Check, if 10 ms is correct
+/// \todo      
 ///
-
-
-// Every second one interrupt
 uint8_t sysTick;
 ISR(TIMER3_COMPA_vect)
 {
    sysTick = 1;
 }
 
-
-// Every 100 ms one interrupt
+/// \brief     Timer 4 interrupt 
+/// \detail    For measurement: Every 100 ms an interrupt
+/// \warning   
+/// \return   
+/// \todo      
+///
 uint8_t sysTickFast;
 ISR(TIMER4_COMPA_vect)
 {
@@ -168,59 +200,6 @@ ISR(TIMER4_COMPA_vect)
 
 
 
-int LowerLevelHeater = 0;
-int HigherLevelHeater = 0;
-
-int LowerLevelSomker = 0;
-int HigherLevelSomker = 0;
-
-
-unsigned long previousMillisHeater = 0;
-unsigned long currentMillisHeater = 0;
-
-unsigned long previousMillisSmoker = 0;
-unsigned long currentMillisSmoker = 0;
-
-unsigned long previousMillisTimer = 0;
-unsigned long currentMillisTimer = 0;
-
-
-
-double intervalHighHeater = 10000; // modify so it is 40 second intervals - probably needs to be in ms 
-double intervalLowHeater = 120000; // modify so it is 10 min intervals$ 
-
-double intervalHighSmoker = 5000; // modify so it is 40 second intervals - probably needs to be in ms 
-double intervalLowSmoker = 300000; // modify so it is 5 min intervals$ 
-
-
-int smokerCounter = 0; //used to determine how many pulses the smoker does
-
-boolean ovenState = false; //TODO: unless you can read ovenState you'll need to keep track everywhere it is changed
-boolean smokerState = false; //TODO: unless you can read ovenState you'll need to keep track everywhere it is changed
-boolean runSmoker = 0; // inside RUN state check variable, if smoker was set in SETTING state
-
-
-
-
-// TBD: anderer Platz
-#define UPPER_LEVEL_TEMP  ( 4 )
-#define LOWER_LEVEL_TEMP  ( 5 )
-
-
-#define HEATER_ON_TIMER_S ( 40 )       // 40 s
-#define HEATER_OFF_TIMER_S ( 5*60 )    // 5 min
-uint16_t pulsingCounter = 0;
-uint16_t pulsingCounterSmoker = 0;
-bool first = true;
-
-// Temperature profile
-//     HEATER OFF
-// ------------------------------------------------------ setPoint + UPPER_LEVEL_TEMP
-//     PULSING: 40 s on / 5 min off AND SMOKER CONTROL
-// ------------------------------------------------------ setPoint
-//     PULSING: 40 s on / 5 min off AND SMOKER CONTROL
-// ------------------------------------------------------ setPoint - LOWER_LEVEL_TEMP
-//     HEATER ON
 
 
 
@@ -235,8 +214,8 @@ void setup() {
    TCCR3A = 0;
    TCCR3B = 0xc;     // CTC mode, prescaler = 256+ (clk/256 (From prescaler)
 
-   OCR3A = 62500;      // 16 MHz / 256 = 62500 gives exactly one second (2 Output Compare Register)
-
+   //OCR3A = 62500;    // 16 MHz / 256 = 62500 gives exactly one second (2 Output Compare Register)
+   OCR3A = 6250; //TBD
    TIMSK3 |= 0x02;   // Enable output compare match ints
    
    
@@ -330,7 +309,7 @@ void loop() {
             else
             {
               Serial.println(F("Startup not ok"));
-              displayCommand("Sys not ok: Exy");
+              displayCommand("Sys not ok");
               // TBD: Do something
             }
                
@@ -638,7 +617,7 @@ void loop() {
 
                if(getButtonStateEnter())
                {
-                  setTemperatureOvenSetPoint(value); //TBD : Tests. Warning: Sets double value
+                  setTemperatureOvenSetPoint( value ); //TBD : Tests. Warning: Sets double value
                   stm_sub_entryFlag = TRUE;
                   stm_SubState = STM_SUBSTATE_SET_TEMPERATURE_MEAT;
                }
@@ -653,7 +632,7 @@ void loop() {
                      Serial.println(F("STM_SUBSTATE_SET_TEMPERATURE_MEAT"));
                   #endif
                   displayTitle("TEMP MEAT");
-                  testDisplayOutput(value);
+                  testDisplayOutput( value );
                   stm_sub_entryFlag = FALSE;
                }   
                
@@ -669,7 +648,7 @@ void loop() {
                if(getButtonStateEnter())
                {
                   stm_sub_entryFlag = TRUE;
-                  setTemperatureMeatSetPoint(value); //TBD : Tests. Warning: Sets double value
+                  setTemperatureMeatSetPoint( value ); //TBD : Tests. Warning: Sets double value
                   stm_SubState = STM_SUBSTATE_SET_SMOKER;
                }
             break;
@@ -693,8 +672,8 @@ void loop() {
                if(getButtonStateEnter())
                {
                   armSmoker( true );
-                  smokerCounter = 0;
-                  pulsingCounterSmoker = 0;                  
+                  currentNumOfSmokerCycles = 0;
+                  pulsingCounterSmokerS = 0;                  
                   stm_sub_entryFlag = TRUE;
                   stm_SubState = STM_SUBSTATE_SET_TIMER;
                }
@@ -718,8 +697,8 @@ void loop() {
                   displayTitle("Timer");
                   displayCommandSmall1("Set Timer: Press Enter");
                   displayCommandSmall2("Next:      Press Down");
-				  displaySmokerState();
-				  clearButtonAllFlags();
+                  displaySmokerState();
+                  clearButtonAllFlags();
                   stm_sub_entryFlag = FALSE;
                }   
 			   
@@ -910,6 +889,8 @@ void loop() {
             if(getButtonStateEnter())
             {
                stm_exitFlag = TRUE;
+               first = true;
+               stm_subState_control = STM_SUBSTATE_HEATING;
                stm_newState = STM_STATE_RUN;
             }
             
@@ -944,24 +925,11 @@ void loop() {
             displayTitle("RUN");
             displayRefresh();
             
-
-            
-            pulsingCounter = 0;
+            pulsingCounterS = 0;
             
             // Hyster
-            HigherLevelHeater = getTemperatureOvenSetPoint() + UPPER_LEVEL_TEMP;
+            UpperLevelHeater = getTemperatureOvenSetPoint() + UPPER_LEVEL_TEMP;
             LowerLevelHeater =  getTemperatureOvenSetPoint() - LOWER_LEVEL_TEMP;
-            
-			
-            // Smoker
-            if( getArmSmokerState() )
-            {
-               runSmoker = 1;
-            }
-            else
-            {
-               runSmoker = 0;
-            }
             
             // Timer set?
             if ( timerSet )
@@ -994,6 +962,15 @@ void loop() {
          // Every second
          if ( sysTick )
          {
+            if ( getSmokerState() )
+            {
+               maxSmokerTimeS++;
+            }
+            else
+            {
+               maxSmokerTimeS = 0;
+            }
+            
             sysTick = 0;
          
             switch(stm_subState_control)
@@ -1006,7 +983,6 @@ void loop() {
                   {
                      displayCommandSmall1("Heater On");
                      displayCommandSmall2("Smoker Off");
-                     digitalWrite(GREEN_LED_PIN, HIGH);
                      startHeater( true );
                      startSmoker( false );
                      
@@ -1015,8 +991,9 @@ void loop() {
                         Serial.println(F("STM_SUBSTATE_HEATING"));
                      #endif   
                   }
-                  // Exit
-                  if ( getTemperatureOven() >= LowerLevelHeater )
+                  
+                  // Exit Condition
+                  if ( getTemperatureOven() > LowerLevelHeater )
                   {
                      first = true;
                      stm_subState_control = STM_SUBSTATE_PULSING;
@@ -1027,85 +1004,47 @@ void loop() {
                // 40 s on, 5 min off
                case STM_SUBSTATE_PULSING:
                
-                  switch( pulsingCounter )
+                  switch( pulsingCounterS )
                   {
                      case 0: // Start
                         startHeater( true );
-                        digitalWrite(GREEN_LED_PIN, HIGH);
                         displayCommandSmall1("Pulse On");
-                        pulsingCounter++;
+                        pulsingCounterS++;
                         #ifdef DEBUG
                            Serial.println(F("STM_SUBSTATE_PULSING: Pulse On"));
                         #endif
                      break;
                      
                      
-                     case HEATER_ON_TIMER_S: // On time expired, switch off
+                     case HEATER_ON_TIME_S: // On time expired, switch off
                         startHeater( false );
-                        digitalWrite(GREEN_LED_PIN, LOW);
                         displayCommandSmall1("Pulse Off");
-                        pulsingCounter++;
+                        pulsingCounterS++;
                         #ifdef DEBUG
                            Serial.println(F("STM_SUBSTATE_PULSING: Pulse Off"));
                         #endif 
                      break;
                      
-                     case HEATER_OFF_TIMER_S + HEATER_ON_TIMER_S:
-                        pulsingCounter = 0;
-                        pulsingCounterSmoker = 0;
-                        smokerCounter++;
+                     case ( HEATER_OFF_TIME_S + HEATER_ON_TIME_S ):
+                        pulsingCounterS = 0;
                      break;
                      
                      default:
-                        pulsingCounter++;
+                        pulsingCounterS++;
                      break;
                   }
+                        
                   
-                  // Smoke: Only if heater off, smoker armed and 7 times per Intervall
-                  if ( !getHeaterState() && getArmSmokerState() )
+                  // Exit Condition
+                  if ( getTemperatureOven() >  UpperLevelHeater )
                   {
-                     if ( smokerCounter <= 7 ) // TBD remove 7
-                     {
-                        if (pulsingCounterSmoker <= 10) // 10 s??? TBD
-                        {
-                           startSmoker( true );
-                           displayCommandSmall2("Smoker Start");
-                           digitalWrite(YELLOW_LED_PIN, HIGH);
-                           pulsingCounterSmoker++;
-                        }
-                        else
-                        {
-                           startSmoker( false );
-                           displayCommandSmall2("Smoker Stop");
-                           digitalWrite(YELLOW_LED_PIN, HIGH);
-                        }
-
-                     }
-                     else
-                     {
-                        startSmoker( false );
-                        displayCommandSmall2("Smoker Stop");
-                        digitalWrite(YELLOW_LED_PIN, LOW);
-                     }
-                  }
-                  else
-                  {
-                     startSmoker( false );
+                     pulsingCounterS = 0;
+                     stm_subState_control = STM_SUBSTATE_OFF;
                   }
                   
-                 
-
-               
-                  // Exit
-                  if ( getTemperatureOven() >= STM_SUBSTATE_OFF )
+                  if ( getTemperatureOven() < LowerLevelHeater ) 
                   {
-                     pulsingCounter = 0;
-                     stm_subState_control = STM_SUBSTATE_PULSING;
-                  }
-                  
-                  if ( getTemperatureOven() <= LowerLevelHeater )
-                  {
-                     pulsingCounter = 0;
+                     pulsingCounterS = 0;
                      stm_subState_control = STM_SUBSTATE_HEATING;
                   }
                   
@@ -1114,13 +1053,9 @@ void loop() {
                
                case STM_SUBSTATE_OFF:
                   startHeater( false );
-                  startSmoker( false );
-                  digitalWrite(GREEN_LED_PIN, LOW);
-                  digitalWrite(YELLOW_LED_PIN, LOW);
                   displayCommandSmall1("Heater Stop");
-                  displayCommandSmall2("Smoker Stop");
                   #ifdef DEBUG
-                     Serial.println(F("STM_SUBSTATE_OFF: All off"));
+                     Serial.println(F("STM_SUBSTATE_OFF: Heater off"));
                   #endif
                   stm_subState_control = STM_SUBSTATE_WAIT;
                   
@@ -1135,7 +1070,7 @@ void loop() {
                   // Exit
                   if ( getTemperatureOven() <= LowerLevelHeater )
                   {
-                     stm_subState_control = STM_SUBSTATE_HEATING;
+                     stm_subState_control = STM_SUBSTATE_PULSING;
                   }
                break;
                
@@ -1148,232 +1083,52 @@ void loop() {
                break;
                
             }
-         }
-         
-         
-/*
-
-LowerLevelHeater = getTemperatureOvenSetPoint()-3;
-HigherLevelHeater = getTemperatureOvenSetPoint()+3;
-
-
-
-
-if (runSmoker == 0) {
-	
-	startSmoker( false );
-   // OFF: SetPoint + 5 or meat set point reached
-	if ((getTemperatureOven() >= (getTemperatureOvenSetPoint()+5)) || (getTemperatureMeat() >= getTemperatureMeatSetPoint()))
-	{
-		startHeater( false );
-		displayCommandSmall1("Heater Stop");
-	    digitalWrite(RED_LED_PIN, HIGH);
-	    digitalWrite(GREEN_LED_PIN, LOW);
-	    digitalWrite(YELLOW_LED_PIN, LOW);
-                          
-		ovenState = false;
-    }
-	// ON
-	else if(LowerLevelHeater <= getTemperatureOven())     
-         {             
-
-                          // #ifdef DEBUG
-                          // Serial.println(F("Pulsed signal"));
-                         // #endif
-                         
-                           displayCommandSmall1("Heater On");
-                           digitalWrite(GREEN_LED_PIN, HIGH);
-                           digitalWrite(RED_LED_PIN, LOW);
-                           digitalWrite(YELLOW_LED_PIN, LOW);
-
-                currentMillisHeater = millis();
-
-                if ((currentMillisHeater - previousMillisHeater) >= intervalHighHeater) {     
-                   if (ovenState) {
-                        //  #ifdef DEBUG
-                        //  Serial.println(F("Heater Stop"));
-                        //  #endif
-                          
-                         startHeater( false );
-                         displayCommandSmall1("Heater Stop");
-                       
-                         previousMillisHeater = currentMillisHeater;
-                         ovenState = false;
-                  } 
-                  else if ((currentMillisHeater - previousMillisHeater) >= intervalLowHeater) {
-
-                         // #ifdef DEBUG
-                         // Serial.println(F("Heater On"));
-                         // #endif
-                          
-                          startHeater( true );
-                          displayCommandSmall1("Heater On");
-                          
-                          previousMillisHeater = currentMillisHeater;
-                          ovenState = true; 
-                  }
-              } 
-
             
-           
-        } 
-          else if((getTemperatureOven() <= getTemperatureOvenSetPoint()-4))
-            { 
-                          startHeater( true );
-                          ovenState = true;
-                           
-                         // #ifdef DEBUG
-                         // Serial.println(F("LED BLink heat up"));
-                         // #endif
-                          displayCommandSmall1("Heating Up");
-                          digitalWrite(YELLOW_LED_PIN, HIGH);
-                          digitalWrite(GREEN_LED_PIN, LOW);
-                          digitalWrite(RED_LED_PIN, LOW);
-            } 
+            
+            // Smoke: Only if heater off, smoker armed and x times per Intervall
+            if ( !getHeaterState() && getArmSmokerState() )
+            {
+               if ( pulsingCounterS != 0 )
+               {
+                  if ( currentNumOfSmokerCycles < numOfSmokerCycles )
+                  {
+                     if ( pulsingCounterSmokerS == 0) // Smoker On
+                     {
+                        startSmoker( true );
+                        displayCommandSmall2("Smoker Start");
+                        pulsingCounterSmokerS++;
+                     }     
+                     else if ( pulsingCounterSmokerS == SMOKER_ON_TIME_S ) // On time expired, switch off
+                     {
+                        startSmoker( false );
+                        displayCommandSmall2("Smoker Stop");
+                        pulsingCounterSmokerS++;
+                     }
+                     else if ( pulsingCounterSmokerS == ( SMOKER_ON_TIME_S + SMOKER_OFF_TIME_S ) )
+                     {
+                        pulsingCounterSmokerS = 0;
+                        currentNumOfSmokerCycles++;
+                     }
+                     else
+                     {
+                        pulsingCounterSmokerS++;
+                     }
 
-
-}
-
-
-
-if (runSmoker == 1)
-{
- //displayCommandSmall2("Smoker aktive");
- currentMillisSmoker= millis();
-  
-        if (getTemperatureOven() >= getTemperatureOvenSetPoint()-2) {
-            if (runSmoker == 0) {
-              displayCommandSmall2("Smoker On");
-              previousMillisSmoker = currentMillisSmoker;
-              smokerCounter = 0;
-              smokerState = true;
-              
-              startHeater( false );
-              startSmoker( true );
-              
-              
-              startHeater( false );
-              startSmoker( true );
-              ovenState = false;
+                  }
+                  else
+                  {
+                     startSmoker( false );
+                     displayCommandSmall2("Smoker Stop");
+                  }
+               }
             }
-            runSmoker = 1;
+            else
+            {
+               startSmoker( false );
+            }
+            
+         }
 
-        }
-
-        if((runSmoker == 1) && (smokerCounter < 7)) {
-                if (((currentMillisSmoker - previousMillisSmoker) >= intervalHighSmoker)) {     
-                         if(smokerState == true) {
-                          
-                         // #ifdef DEBUG
-                         // Serial.println(F("Smoker Stop"));
-                         // #endif
-                         
-                          digitalWrite(YELLOW_LED_PIN, LOW);
-                          digitalWrite(GREEN_LED_PIN, HIGH); 
-                          digitalWrite(RED_LED_PIN, LOW); 
-                          
-                         startSmoker( false );
-                         displayCommandSmall2("Smoker Stop");
-                         
-                         previousMillisSmoker = currentMillisSmoker;
-                         smokerState = false;
-                         smokerCounter = smokerCounter + 1;
-                         }
-                       if (((currentMillisSmoker - previousMillisSmoker) >= intervalLowSmoker)) {
-                          if (smokerState == false) {
-                          
-                            //#ifdef DEBUG
-                            //Serial.println(F("Smoker On"));
-                            //#endif
-
-                            startHeater( false );
-                            startSmoker( true );
-                            ovenState = false;
-
-                            digitalWrite(YELLOW_LED_PIN, HIGH);
-                            digitalWrite(GREEN_LED_PIN, HIGH); 
-                            digitalWrite(RED_LED_PIN, LOW);
-                            
-                            displayCommandSmall2("Somker On");
-                            
-                            previousMillisSmoker = currentMillisSmoker;
-                            smokerState = true; 
-                          }
-                  }
-                }
-                  if (smokerState == FALSE) {
-                        if ((getTemperatureOven() >= getTemperatureOvenSetPoint()+5) || (getTemperatureMeat() >= getTemperatureMeatSetPoint()))
-                        {
-     
-                          startHeater( false );
-                             
-                          digitalWrite(RED_LED_PIN, HIGH);
-                          digitalWrite(GREEN_LED_PIN, LOW);
-                          digitalWrite(YELLOW_LED_PIN, LOW);
-
-                          displayCommandSmall1("Heater Stop");
-                          
-                          ovenState = false;
-                         }
-                     
-      else if(LowerLevelHeater <= getTemperatureOven())     
-         {              
-
-
-                      displayCommandSmall1("Heater On");
-                      digitalWrite(GREEN_LED_PIN, HIGH);
-                      digitalWrite(RED_LED_PIN, LOW);
-                      digitalWrite(YELLOW_LED_PIN, LOW);
-
-
-                currentMillisHeater = millis();
-
-                if ((currentMillisHeater - previousMillisHeater) >= intervalHighHeater) {     
-                   if (ovenState) {
-    
-                         startHeater( false );
-                         displayCommandSmall1("Heater Stop - Pulse");
-                        
-                         previousMillisHeater = currentMillisHeater;
-                         ovenState = false;
-                  } 
-                  else if ((currentMillisHeater - previousMillisHeater) >= intervalLowHeater) {
-
-
-                          
-                          startHeater( true );
-                          displayCommandSmall1("Heater On - Pulse");
-                        
-                          previousMillisHeater = currentMillisHeater;
-                          ovenState = true; 
-                  }
-              } 
-
-        }  
-        
-   else if((getTemperatureOven() <= getTemperatureOvenSetPoint()-4))
-   { 
-     startHeater( true );
-      ovenState = true;
-
-                      displayCommandSmall1("Heating Up");
-                      digitalWrite(YELLOW_LED_PIN, HIGH);
-                      digitalWrite(GREEN_LED_PIN, LOW);
-                      digitalWrite(RED_LED_PIN, LOW);                  
-                          
-                          
-  }
-                 
-              } 
-        }
-
-        if (smokerCounter == 7) {
-			startSmoker( false );
-			displayCommandSmall2("Smoker Stop");
-        }
-}
-
-       */
          
          if( getButtonStateUp() )
          {
@@ -1396,11 +1151,21 @@ if (runSmoker == 1)
 		 
          if ( getButtonStateSmoker() )
          {
-            runSmoker = 1;
-            smokerCounter = 0;
+            currentNumOfSmokerCycles = 0;
+            numOfSmokerCycles = NUM_OF_SMOKER_CYCLES_BUTTON;
+            armSmoker( true );
             Serial.println(F("ButtonStateSmoker"));
          }
 
+         
+         // Meat temperature reached
+         if( getTemperatureMeat() >= getTemperatureMeatSetPoint() )
+         {
+            Serial.println(F("Reached Meat SetPoint"));
+            stm_newState = STM_STATE_FINISHED;
+            stm_exitFlag = TRUE;
+         }
+         
 		 
 
          // Exit
@@ -1410,10 +1175,6 @@ if (runSmoker == 1)
             clearButtonAllFlags();
             startHeater( false ); // Switch off Heater
             startSmoker( false ); // Switch off Smoker
-            // All LEDs off
-            digitalWrite(YELLOW_LED_PIN, LOW);
-            digitalWrite(GREEN_LED_PIN, LOW);
-            digitalWrite(RED_LED_PIN, LOW);
             
             stm_exitFlag = FALSE;
             stm_actState = stm_newState;
@@ -1510,6 +1271,9 @@ if (runSmoker == 1)
    if ( getTemperatureOven() > MAX_TEMPERATURE_OVEN)  sysOkay = false; // Overtemperature Oven
    if ( getTemperatureMeat() > MAX_TEMPERATURE_MEAT)  sysOkay = false; // Overtemperature Meat
    if ( getHeaterState() && getSmokerState() )        sysOkay = false; // Heater and Smoker both on
+   if ( maxSmokerTimeS >= MAX_SMOKER_TIME_S )         sysOkay = false; // Smoker too long in ON state
+  
+      
       
    // Safety: If system is not okay -> Disable heaters
    if ( !sysOkay )
@@ -1517,8 +1281,6 @@ if (runSmoker == 1)
       emergencyOff();
       displayTitle("EMERGENCY");
       displayCommand("GoTender Stop");
-      digitalWrite(YELLOW_LED_PIN, HIGH);
-      digitalWrite(GREEN_LED_PIN, HIGH);
       digitalWrite(RED_LED_PIN, HIGH);
    }
 
@@ -1532,6 +1294,24 @@ if (runSmoker == 1)
       sysTickFast = 0;
       displayTime();
       displayTimer();
+      
+      if (getHeaterState() )
+      {
+         digitalWrite(GREEN_LED_PIN, HIGH);
+      }
+      else
+      {
+         digitalWrite(GREEN_LED_PIN, LOW);
+      }
+      
+      if( getSmokerState() )
+      {
+         digitalWrite(YELLOW_LED_PIN, HIGH);
+      }
+      else
+      {
+         digitalWrite(YELLOW_LED_PIN, LOW);
+      }
    }
       
 

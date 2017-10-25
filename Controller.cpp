@@ -140,7 +140,7 @@ void startSmoker(bool start)
 {
    if ( !allOff )
    {
-      if (start)
+      if ( start )
       {
 		 if( armSmokerState )
 		 {
@@ -236,7 +236,7 @@ bool getHeaterState()
 void emergencyOff( void )
 {
 	Serial.println(F("EMERGENCY OFF"));
-    allOff = true;
+   allOff = true;
 	digitalWrite(RELAIS_HEATER, LOW);
 	digitalWrite(RELAIS_SMOKER, LOW);
 }
