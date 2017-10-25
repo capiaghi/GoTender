@@ -9,7 +9,7 @@
 ///
 /// \author    Christoph Capiaghi, Anne Liebold
 ///
-/// \version   0.8
+/// \version   1.0
 ///
 /// \date      20170825
 /// 
@@ -104,8 +104,8 @@ typedef enum stm_subState_control_e
 #define LOWER_LEVEL_TEMP      ( 5 )    // SET_POINT - LOWER_LEVEL_TEMP
 
 
-#define HEATER_ON_TIME_S      ( 30 )    // in seconds
-#define HEATER_OFF_TIME_S     ( 10*60 ) // 
+#define HEATER_ON_TIME_S      ( 35 )    // in seconds
+#define HEATER_OFF_TIME_S     ( 8*60 ) // 
 #define SMOKER_ON_TIME_S      ( 40 )    // 
 #define SMOKER_OFF_TIME_S     ( 7*60 )  // 
 
@@ -134,7 +134,7 @@ bool first                          = true;
 
 
 // Private constants **********************************************************
-const char        SOFTWARE_VERSION[10]  = "V0.8";
+const char        SOFTWARE_VERSION[10]  = "V1.0";
 #define				UART_SPEED				( 115200 )
 #define           MAX_TEMPERATURE_OVEN ( 240 )
 #define           MAX_TEMPERATURE_MEAT ( 240 )
@@ -290,7 +290,7 @@ void loop() {
          if (stm_entryFlag == TRUE)
          {
             #ifdef DEBUG
-             Serial.println(F("Entered STM_STATE_STARTUP"));
+               Serial.println(F("Entered STM_STATE_STARTUP"));
             #endif
               
             displayTitle("Go Tender");
@@ -371,7 +371,7 @@ void loop() {
          if (stm_entryFlag == TRUE)
          {        
            #ifdef DEBUG
-             Serial.println(F("Entered STM_TIME_AND_DATE"));
+               Serial.println(F("Entered STM_TIME_AND_DATE"));
            #endif
            stm_SubState_time = STM_SUBSTATE_SET_HOUR;
            value = 0;
@@ -383,27 +383,35 @@ void loop() {
          switch(stm_SubState_time)
          {
             case STM_SUBSTATE_SET_HOUR:
-               #ifdef DEBUG
-                  Serial.println(F("STM_SUBSTATE_SET_HOUR"));
-               #endif
                if(stm_sub_entryFlag == TRUE)
                {
+                  #ifdef DEBUG
+                     Serial.println(F("STM_SUBSTATE_SET_HOUR"));
+                  #endif
                   displayTitle("SET_HOUR");
                   testDisplayOutput(value);
                   stm_sub_entryFlag = FALSE;
                }                        
                if(value > 23) value = 0;
-               // Show value on display
                
+               // Show value on display
                // Display only, if the value changes
                if (value != oldValue)
                {
+                  #ifdef DEBUG
+                     Serial.print("Time hour: ");
+                     Serial.println( value );
+                  #endif
                   testDisplayOutput(value);
                   oldValue = value;
                }
                
                if(nextState == 1)
                {
+                  #ifdef DEBUG
+                     Serial.print("Time hour SET: ");
+                     Serial.println( value );
+                  #endif
                   setTimeHour(value);
                   value = 1;
                   nextState = 0;
@@ -413,20 +421,25 @@ void loop() {
             break;
 
             case STM_SUBSTATE_SET_MIN:
-               #ifdef DEBUG
-                  Serial.println(F("STM_SUBSTATE_SET_MIN"));
-               #endif
                if(stm_sub_entryFlag == TRUE)
                {
+                  #ifdef DEBUG
+                     Serial.println(F("STM_SUBSTATE_SET_MIN"));
+                  #endif
                   displayTitle("SET_MIN");
                   testDisplayOutput(value);
                   stm_sub_entryFlag = FALSE;
                }  
+               
                if(value > 59) value = 0;
                // Show value on display
                // Display only, if the value changes
                if (value != oldValue)
                {
+                  #ifdef DEBUG
+                     Serial.print("Time min: ");
+                     Serial.println( value );
+                  #endif
                   testDisplayOutput(value);
                   oldValue = value;
                }
@@ -434,6 +447,10 @@ void loop() {
                
                if(nextState == 1)
                {
+                  #ifdef DEBUG
+                     Serial.print("Time min SET: ");
+                     Serial.println( value );
+                  #endif
                   setTimeMin(value);
                   value = 1;
                   nextState = 0;
@@ -443,11 +460,12 @@ void loop() {
             break;
 
             case STM_SUBSTATE_SET_DAY:
-               #ifdef DEBUG
-                  Serial.println(F("STM_SUBSTATE_SET_DAY"));
-               #endif
+
                if(stm_sub_entryFlag == TRUE)
                {
+                  #ifdef DEBUG
+                     Serial.println(F("STM_SUBSTATE_SET_DAY"));
+                  #endif
                   displayTitle("SET_DAY");
                   testDisplayOutput(value);
                   stm_sub_entryFlag = FALSE;
@@ -457,12 +475,20 @@ void loop() {
                // Display only, if the value changes
                if (value != oldValue)
                {
+                  #ifdef DEBUG
+                     Serial.print("Day: ");
+                     Serial.println( value );
+                  #endif
                   testDisplayOutput(value);
                   oldValue = value;
                }
                
                if(nextState == 1)
                {
+                  #ifdef DEBUG
+                     Serial.print("Day SET: ");
+                     Serial.println( value );
+                  #endif
                   setTimeDay(value);
                   value = 1;
                   nextState = 0;
@@ -472,12 +498,12 @@ void loop() {
             break;
 
             case STM_SUBSTATE_SET_MONTH:
-               #ifdef DEBUG
-                  Serial.println(F("STM_SUBSTATE_SET_MONTH"));
-               #endif
               // Show value on display
                if(stm_sub_entryFlag == TRUE)
                {
+                  #ifdef DEBUG
+                     Serial.println(F("STM_SUBSTATE_SET_MONTH"));
+                  #endif
                   displayTitle("SET_MONTH");
                   testDisplayOutput(value);
                   stm_sub_entryFlag = FALSE;
@@ -488,12 +514,20 @@ void loop() {
                // Display only, if the value changes
                if (value != oldValue)
                {
+                  #ifdef DEBUG
+                     Serial.print("Month: ");
+                     Serial.println( value );
+                  #endif
                   testDisplayOutput(value);
                   oldValue = value;
                }
 
                if(nextState == 1)
                {
+                  #ifdef DEBUG
+                     Serial.print("Month SET: ");
+                     Serial.println( value );
+                  #endif
                   setTimeMonth(value);
                   value = 2017;
                   nextState = 0;
@@ -503,31 +537,39 @@ void loop() {
             break;
 
             case STM_SUBSTATE_SET_YEAR:
-               #ifdef DEBUG
-                  Serial.println(F("STM_SUBSTATE_SET_YEAR"));
-               #endif
+
                if(stm_sub_entryFlag == TRUE)
                {
+                  #ifdef DEBUG
+                     Serial.println(F("STM_SUBSTATE_SET_YEAR"));
+                  #endif
                   displayTitle("SET_YEAR");
                   testDisplayOutput(value);
                   stm_sub_entryFlag = FALSE;
                }  
-               // Show value on display
                
+               // Show value on display           
                // Display only, if the value changes
                if (value != oldValue)
                {
+                  #ifdef DEBUG
+                     Serial.print("Year: ");
+                     Serial.println( value );
+                  #endif
                   testDisplayOutput(value);
                   oldValue = value;
                }
                if(nextState == 1)
                {
+                  #ifdef DEBUG
+                     Serial.print("Year SET: ");
+                     Serial.println( value );
+                  #endif
                   setTimeYear(value); 
                   nextState = 0;
                   stm_sub_entryFlag = TRUE;
                   stm_exitFlag = TRUE;
                   stm_newState = STM_STATE_SETTINGS;
-                  
                }
             break;
          }
@@ -546,11 +588,6 @@ void loop() {
          {
             value--;
          }
-         
-         #ifdef DEBUG
-            Serial.print("Value: ");
-            Serial.println(value);
-         #endif
          
          
          // Exit
@@ -607,8 +644,11 @@ void loop() {
                // Display only, if the value changes
                if (value != oldValue)
                {
-                  testDisplayOutput(value);
-                  Serial.println(value);  
+                  #ifdef DEBUG
+                     Serial.print("Temp Oven: ");
+                     Serial.println( value );
+                  #endif
+                  testDisplayOutput(value); 
                   oldValue = value;
                }
 
@@ -616,6 +656,10 @@ void loop() {
 
                if(getButtonStateEnter())
                {
+                  #ifdef DEBUG
+                     Serial.print("Temp Oven SET: ");
+                     Serial.println( value );
+                  #endif
                   setTemperatureOvenSetPoint( value ); //TBD : Tests. Warning: Sets double value
                   stm_sub_entryFlag = TRUE;
                   stm_SubState = STM_SUBSTATE_SET_TEMPERATURE_MEAT;
@@ -639,13 +683,20 @@ void loop() {
                // Display only, if the value changes
                if (value != oldValue)
                {
-                  testDisplayOutput(value);
-                  Serial.println(value);  
+                  #ifdef DEBUG
+                     Serial.print("Temp Meat: ");
+                     Serial.println( value );
+                  #endif
+                  testDisplayOutput(value);  
                   oldValue = value;
                }
 
                if(getButtonStateEnter())
                {
+                  #ifdef DEBUG
+                     Serial.print("Temp Meat SET: ");
+                     Serial.println( value );
+                  #endif
                   stm_sub_entryFlag = TRUE;
                   setTemperatureMeatSetPoint( value ); //TBD : Tests. Warning: Sets double value
                   stm_SubState = STM_SUBSTATE_SET_SMOKER;
@@ -689,38 +740,38 @@ void loop() {
 			case STM_SUBSTATE_SET_TIMER:
 			
 			   if(stm_sub_entryFlag == TRUE)
-               {
-                  #ifdef DEBUG
-                     Serial.println(F("STM_SUBSTATE_SET_TIMER"));
-                  #endif
-                  displayTitle("Timer");
-                  displayCommandSmall1("Set Timer: Press Enter");
-                  displayCommandSmall2("Next:      Press Down");
-                  displaySmokerState();
-                  clearButtonAllFlags();
-                  stm_sub_entryFlag = FALSE;
-               }   
+            {
+               #ifdef DEBUG
+                  Serial.println(F("STM_SUBSTATE_SET_TIMER"));
+               #endif
+               displayTitle("Timer");
+               displayCommandSmall1("Set Timer: Press Enter");
+               displayCommandSmall2("Next:      Press Down");
+               displaySmokerState();
+               clearButtonAllFlags();
+               stm_sub_entryFlag = FALSE;
+            }   
 			   
 			   
 			  if(getButtonStateEnter())
-               {
-                  timerSet     = true; // Yes, timer is set 
-                  stm_newState = STM_STATE_SET_TIMER;
-                  stm_sub_entryFlag = TRUE;
-                  stm_SubState = STM_SUBSTATE_DONE;
-                  stm_exitFlag = TRUE; 
-               }
-               if(getButtonStateDown())
-               {
-                  timerSet     = false;   // No, timer is disabled. Do not use timer
-                  setTimerHour(0);
-                  setTimerMin(0);
-				  
-                  stm_newState = STM_STATE_SUMMARY;
-                  stm_sub_entryFlag = TRUE;
-                  stm_SubState = STM_SUBSTATE_DONE;
-                  stm_exitFlag = TRUE; 
-               }
+            {
+               timerSet     = true; // Yes, timer is set 
+               stm_newState = STM_STATE_SET_TIMER;
+               stm_sub_entryFlag = TRUE;
+               stm_SubState = STM_SUBSTATE_DONE;
+               stm_exitFlag = TRUE; 
+            }
+            if(getButtonStateDown())
+            {
+               timerSet     = false;   // No, timer is disabled. Do not use timer
+               setTimerHour(0);
+               setTimerMin(0);
+           
+               stm_newState = STM_STATE_SUMMARY;
+               stm_sub_entryFlag = TRUE;
+               stm_SubState = STM_SUBSTATE_DONE;
+               stm_exitFlag = TRUE; 
+            }
 			   
 			break;
 		}
@@ -751,7 +802,8 @@ void loop() {
          {
             #ifdef DEBUG
                Serial.println(F("Entered STM_STATE_SET_TIMER"));
-            #endif      
+            #endif  
+            timerSet     = true; // Yes, timer is set 
             stm_SubState_time = STM_SUBSTATE_SET_HOUR_TIMER;
             nextState = 0;
             value = 0;
@@ -762,11 +814,12 @@ void loop() {
          switch(stm_SubState_time)
          {
             case STM_SUBSTATE_SET_HOUR_TIMER:
-               #ifdef DEBUG
-                  Serial.println(F("STM_SUBSTATE_SET_HOUR_TIMER"));
-               #endif
+
                if(stm_sub_entryFlag == TRUE)
                {
+                  #ifdef DEBUG
+                     Serial.println(F("STM_SUBSTATE_SET_HOUR_TIMER"));
+                  #endif
                   displayTitle("SET_HOUR");
                   testDisplayOutput(value);
                   stm_sub_entryFlag = FALSE;
@@ -792,11 +845,11 @@ void loop() {
             break;
 
             case STM_SUBSTATE_SET_MIN_TIMER:
-               #ifdef DEBUG
-                  Serial.println(F("STM_SUBSTATE_SET_MIN"));
-               #endif
                if(stm_sub_entryFlag == TRUE)
                {
+                  #ifdef DEBUG
+                     Serial.println(F("STM_SUBSTATE_SET_MIN"));
+                  #endif
                   displayTitle("SET_MIN");
                   testDisplayOutput(value);
                   stm_sub_entryFlag = FALSE;
@@ -856,7 +909,7 @@ void loop() {
 		 
 		 
 		 
-		//==============================================================================
+         //==============================================================================
          // STM_STATE_SUMMARY
          //==============================================================================
          case STM_STATE_SUMMARY:
@@ -985,6 +1038,9 @@ void loop() {
                      startHeater( true );
                      startSmoker( false );
                      
+                     Serial.println(F("SWITCH HEATER ON"));
+                     Serial.println(F("SWITCH SMOKER OFF"));
+                     
                      first = false;
                      #ifdef DEBUG
                         Serial.println(F("STM_SUBSTATE_HEATING"));
@@ -1007,6 +1063,7 @@ void loop() {
                   {
                      case 0: // Start
                         startHeater( true );
+                        Serial.println(F("HEATER ON"));
                         displayCommandSmall1("Pulse On");
                         pulsingCounterS++;
                         #ifdef DEBUG
@@ -1017,6 +1074,7 @@ void loop() {
                      
                      case HEATER_ON_TIME_S: // On time expired, switch off
                         startHeater( false );
+                        Serial.println(F("HEATER OFF"));
                         displayCommandSmall1("Pulse Off");
                         pulsingCounterS++;
                         #ifdef DEBUG
@@ -1052,6 +1110,7 @@ void loop() {
                
                case STM_SUBSTATE_OFF:
                   startHeater( false );
+                  Serial.println(F("HEATER OFF"));
                   displayCommandSmall1("Heater Stop");
                   #ifdef DEBUG
                      Serial.println(F("STM_SUBSTATE_OFF: Heater off"));
@@ -1092,18 +1151,28 @@ void loop() {
                   if ( currentNumOfSmokerCycles < numOfSmokerCycles )
                   {
                      #ifdef DEBUG
-                        Serial.println( "currentNumOfSmokerCycles: " + pulsingCounterSmokerS );
+                        Serial.print( "Smoker Time: ");
+                        Serial.println( pulsingCounterSmokerS );
                      #endif
+                     #ifdef DEBUG
+                        Serial.print( "Smoker Cycle: ");
+                        Serial.print( (currentNumOfSmokerCycles + 1) );
+                        Serial.print(" / ");
+                        Serial.println( numOfSmokerCycles );
+                     #endif
+                     
                      
                      if ( pulsingCounterSmokerS == 0) // Smoker On
                      {
                         startSmoker( true );
+                        Serial.println(F("SWITCH SMOKER ON"));
                         displayCommandSmall2("Smoker Start");
                         pulsingCounterSmokerS++;
                      }     
                      else if ( pulsingCounterSmokerS == SMOKER_ON_TIME_S ) // On time expired, switch off
                      {
                         startSmoker( false );
+                        Serial.println(F("SWITCH SMOKER OFF"));
                         displayCommandSmall2("Smoker Stop");
                         pulsingCounterSmokerS++;
                      }
@@ -1121,6 +1190,7 @@ void loop() {
                   else if ( currentNumOfSmokerCycles == numOfSmokerCycles)
                   {
                      startSmoker( false );
+                     Serial.println(F("SWITCH SMOKER OFF"));
                      displayCommandSmall2("Smoker finished");
                      #ifdef DEBUG
                         Serial.println(F("Smoker finished"));
@@ -1146,6 +1216,7 @@ void loop() {
          if( getButtonStateUp() )
          {
             stm_newState = STM_STATE_SETTINGS;
+            stm_sub_entryFlag = TRUE;
             stm_exitFlag = TRUE;        
          }
 
@@ -1153,18 +1224,21 @@ void loop() {
          {
             
             stm_newState = STM_STATE_FINISHED;
+            stm_sub_entryFlag = TRUE;
             stm_exitFlag = TRUE;
          }
 
          if( getButtonStateDown() )
          {
             stm_newState = STM_STATE_SET_TIMER;
+            stm_sub_entryFlag = TRUE;
             stm_exitFlag = TRUE;        
          }
 		 
          if ( getButtonStateSmoker() )
          {
             currentNumOfSmokerCycles = 0;
+            pulsingCounterSmokerS = 0;
             numOfSmokerCycles = NUM_OF_SMOKER_CYCLES_BUTTON;
             armSmoker( true );
             Serial.println(F("ButtonStateSmoker"));
@@ -1189,6 +1263,9 @@ void loop() {
             clearButtonAllFlags();
             startHeater( false ); // Switch off Heater
             startSmoker( false ); // Switch off Smoker
+            
+            Serial.println(F("SWITCH SMOKER OFF"));
+            Serial.println(F("SWITCH HEATER OFF"));
             
             stm_exitFlag = FALSE;
             stm_actState = stm_newState;

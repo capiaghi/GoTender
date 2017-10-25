@@ -144,21 +144,21 @@ void startSmoker(bool start)
       {
 		 if( armSmokerState )
 		 {
-			Serial.println(F("SWITCH SMOKER ON"));  
+			//Serial.println(F("SWITCH SMOKER ON"));  
 			digitalWrite(RELAIS_SMOKER, HIGH);
 			smokerStateOn = true;
 		 }
       }
       else
       {
-		 Serial.println(F("SWITCH SMOKER OFF"));  
+         //Serial.println(F("SWITCH SMOKER OFF"));  
          digitalWrite(RELAIS_SMOKER, LOW);
          smokerStateOn = false;
       }
    }
    else
    {
-      Serial.println(F("SWITCH SMOKER OFF"));
+      //Serial.println(F("SWITCH SMOKER OFF"));
       digitalWrite(RELAIS_SMOKER, LOW);
       smokerStateOn = false;
    }
