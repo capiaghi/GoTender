@@ -136,8 +136,8 @@ bool first                          = true;
 // Private constants **********************************************************
 const char        SOFTWARE_VERSION[10]  = "V0.8";
 #define				UART_SPEED				( 115200 )
-#define           MAX_TEMPERATURE_OVEN ( 300 )
-#define           MAX_TEMPERATURE_MEAT ( 300 )
+#define           MAX_TEMPERATURE_OVEN ( 240 )
+#define           MAX_TEMPERATURE_MEAT ( 240 )
 
 
 // Private macros *************************************************************
@@ -1091,6 +1091,10 @@ void loop() {
                {
                   if ( currentNumOfSmokerCycles < numOfSmokerCycles )
                   {
+                     #ifdef DEBUG
+                        Serial.println( "currentNumOfSmokerCycles: " + pulsingCounterSmokerS );
+                     #endif
+                     
                      if ( pulsingCounterSmokerS == 0) // Smoker On
                      {
                         startSmoker( true );
@@ -1114,10 +1118,20 @@ void loop() {
                      }
 
                   }
-                  else
+                  else if ( currentNumOfSmokerCycles == numOfSmokerCycles)
                   {
                      startSmoker( false );
-                     displayCommandSmall2("Smoker Stop");
+                     displayCommandSmall2("Smoker finished");
+                     #ifdef DEBUG
+                        Serial.println(F("Smoker finished"));
+                     #endif
+                     
+                     
+                     currentNumOfSmokerCycles++;
+                  }
+                  else
+                  {
+                     startSmoker( false );  
                   }
                }
             }
@@ -1154,6 +1168,7 @@ void loop() {
             numOfSmokerCycles = NUM_OF_SMOKER_CYCLES_BUTTON;
             armSmoker( true );
             Serial.println(F("ButtonStateSmoker"));
+            // pulsingCounterS = 0; // TBD: Wenn du willst, dass der Smoker sofort wieder startet, diese Zeile auskommentieren.
          }
 
          
